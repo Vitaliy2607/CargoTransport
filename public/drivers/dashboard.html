@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Панель водителя</title>
+    <style>
+        :root {
+            --green-primary: #2e7d32;
+            --green-light: #a5d6a7;
+            --green-dark: #1b5e20;
+            --bg-color: #f9f9f9;
+            --text-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .header {
+            background-color: var(--green-primary);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 22px;
+        }
+
+        .user-info {
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #eee;
+        }
+
+        .tab-btn {
+            padding: 14px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #555;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: var(--green-primary);
+            border-bottom: 3px solid var(--green-primary);
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 24px;
+            background: white;
+            min-height: 500px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab-content h2 {
+            margin-bottom: 20px;
+            color: var(--green-primary);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background-color: var(--green-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            background-color: var(--green-dark);
+        }
+
+        .btn-danger {
+            background-color: #f44336;
+        }
+
+        .btn-danger:hover {
+            background-color: #d32f2f;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: #f5f5f5;
+        }
+
+        .btn-edit-route, .btn-delete-route {
+            padding: 4px 8px;
+            margin: 0 4px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-edit-route {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .btn-edit-route:hover {
+            background-color: #388E3C;
+        }
+
+        .btn-delete-route {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .btn-delete-route:hover {
+            background-color: #d32f2f;
+        }
+
+        /* Модальное окно */
+        #routeModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        #routeModal > div {
+            background: white;
+            margin: 50px auto;
+            padding: 24px;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 12px;
+        }
+        .custom-radio-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .custom-radio-label input[type="radio"] {
+            opacity: 0;
+            position: absolute;
+            width: 0;
+            height: 0;
+            margin: 0;
+            padding: 0;
+        }
+
+        .custom-radio {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            position: relative;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .custom-radio-label:hover .custom-radio {
+            border-color: #999;
+        }
+
+        .custom-radio-label input[type="radio"]:checked + .custom-radio {
+            background: #7c4dff;
+            border-color: #7c4dff;
+        }
+
+        .custom-radio-label input[type="radio"]:checked + .custom-radio::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>Панель водителя</h1>
+    <div style="display: flex; align-items: center; gap: 16px;">
+        <div class="user-info" id="userInfo">Загрузка...</div>
+        <button id="logoutBtn" class="btn-danger">Выйти</button>
+    </div>
+</div>
+
+<div class="tabs">
+    <button class="tab-btn active" data-tab="my-routes">БД Рейсы для водителя</button>
+    <button class="tab-btn" data-tab="violations">БД Нарушения</button> <!-- ← новая -->
+    <button class="tab-btn" data-tab="fuel">БД Заправки</button> <!-- ← новая -->
+    <button class="tab-btn" data-tab="vehicles">БД Транспорт</button> <!-- ← новая -->
+</div>
+
+<!-- Вкладка: Мои рейсы -->
+<div id="my-routes" class="tab-content active">
+    <button class="btn" id="addRouteBtn" style="margin-bottom: 16px;">➕ Добавить рейс</button>
+
+    <table id="routesTable">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Заказ</th>
+            <th>Маршрут</th>
+            <th>Статус</th>
+            <th>Даты</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr><td colspan="6">Загрузка...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Модальное окно редактирования/создания -->
+<div id="routeModal">
+    <div>
+        <h3 id="routeModalTitle">Добавить рейс</h3>
+        <form id="routeForm">
+            <input type="hidden" id="routeId" />
+
+            <div class="form-group">
+                <label for="routeOrder">Заказ (ID) *</label>
+                <input type="number" id="routeOrder" required />
+            </div>
+
+            <div class="form-group">
+                <label for="routeStart">Пункт отправления *</label>
+                <input type="text" id="routeStart" required />
+            </div>
+
+            <div class="form-group">
+                <label for="routeEnd">Пункт назначения *</label>
+                <input type="text" id="routeEnd" required />
+            </div>
+
+            <div class="form-group">
+                <label for="routeStartDateTime">Дата начала</label>
+                <input type="datetime-local" id="routeStartDateTime" />
+            </div>
+
+            <div class="form-group">
+                <label for="routeEndDateTime">Дата окончания</label>
+                <input type="datetime-local" id="routeEndDateTime" />
+            </div>
+
+            <div class="form-group">
+                <label for="routeDistance">Расстояние (км)</label>
+                <input type="number" id="routeDistance" step="0.01" />
+            </div>
+
+            <div style="display:flex; gap:12px; margin-top:20px;">
+                <button type="submit" class="btn">Сохранить</button>
+                <button type="button" id="cancelRouteBtn" class="btn" style="background:#ccc;">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- Вкладка: Нарушения -->
+<div id="violations" class="tab-content">
+    <h2>Нарушения</h2>
+    <button class="btn" id="addViolationBtn" style="margin-bottom: 16px;">➕ Добавить нарушение</button>
+
+    <table id="violationsTable">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Рейс</th>
+            <th>Тип</th>
+            <th>Описание</th>
+            <th>Сумма</th>
+            <th>Дата</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr><td colspan="7">Загрузка...</td></tr>
+        </tbody>
+    </table>
+
+    <!-- Модальное окно -->
+    <div id="violationModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
+        <div style="background:white; margin:50px auto; padding:24px; width:90%; max-width:600px; border-radius:12px;">
+            <h3 id="violationModalTitle">Добавить нарушение</h3>
+            <form id="violationForm">
+                <input type="hidden" id="violationId" />
+
+                <div class="form-group">
+                    <label for="violationRoute">Рейс *</label>
+                    <select id="violationRoute" required>
+                        <option value="">— Выберите рейс —</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Тип *</label>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <label class="custom-radio-label">
+                            <span>ДТП</span>
+                            <input type="radio" id="violationTypeAccident" name="violationType" value="accident" required>
+                            <span class="custom-radio"></span>
+                        </label>
+                        <label class="custom-radio-label">
+                            <span>Штраф</span>
+                            <input type="radio" id="violationTypeFine" name="violationType" value="fine" required>
+                            <span class="custom-radio"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="violationDesc">Описание</label>
+                    <textarea id="violationDesc" rows="3"></textarea>
+                </div>
+
+                <div class="form-group" id="violationAmountGroup" style="display: none;">
+                    <label for="violationAmount">Сумма штрафа (₽)</label>
+                    <input type="number" id="violationAmount" step="0.01" placeholder="0.00" />
+                </div>
+
+                <div class="form-group">
+                    <label for="violationDate">Дата нарушения</label>
+                    <input type="datetime-local" id="violationDate" />
+                </div>
+
+                <div style="display:flex; gap:12px; margin-top:20px;">
+                    <button type="submit" class="btn">Сохранить</button>
+                    <button type="button" id="cancelViolationBtn" class="btn" style="background:#ccc;">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Вкладка: Заправки -->
+<div id="fuel" class="tab-content">
+    <h2>Заправки</h2>
+    <button class="btn" id="addFuelBtn" style="margin-bottom: 16px;">➕ Добавить заправку</button>
+
+    <table id="fuelTable">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Рейс</th>
+            <th>Тип</th>
+            <th>Объём (л)</th>
+            <th>Цена за л</th>
+            <th>Итого</th>
+            <th>Дата</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr><td colspan="8">Загрузка...</td></tr>
+        </tbody>
+    </table>
+
+    <!-- Модальное окно -->
+    <div id="fuelModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
+        <div style="background:white; margin:50px auto; padding:24px; width:90%; max-width:600px; border-radius:12px;">
+            <h3 id="fuelModalTitle">Добавить заправку</h3>
+            <form id="fuelForm">
+                <input type="hidden" id="fuelId" />
+
+                <div class="form-group">
+                    <label for="fuelRoute">Рейс *</label>
+                    <select id="fuelRoute" required>
+                        <option value="">— Выберите рейс —</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="fuelType">Тип топлива *</label>
+                    <select id="fuelType" required>
+                        <option value="">— Выберите —</option>
+                        <option value="ДТ">Дизельное топливо (ДТ)</option>
+                        <option value="АИ-95">Бензин АИ-95</option>
+                        <option value="АИ-92">Бензин АИ-92</option>
+                        <option value="Электричество">Электричество</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="fuelVolume">Объём (л или кВт·ч) *</label>
+                    <input type="number" id="fuelVolume" step="0.01" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="fuelPrice">Цена за единицу (₽) *</label>
+                    <input type="number" id="fuelPrice" step="0.01" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="fuelTotal">Итого (₽)</label>
+                    <input type="number" id="fuelTotal" step="0.01" readonly />
+                </div>
+
+                <div class="form-group">
+                    <label for="fuelDate">Дата заправки *</label>
+                    <input type="datetime-local" id="fuelDate" required />
+                </div>
+
+                <div style="display:flex; gap:12px; margin-top:20px;">
+                    <button type="submit" class="btn">Сохранить</button>
+                    <button type="button" id="cancelFuelBtn" class="btn" style="background:#ccc;">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Вкладка: Транспортные средства -->
+<div id="vehicles" class="tab-content">
+    <h2>Мой транспорт</h2>
+    <button class="btn" id="addVehicleBtn" style="margin-bottom: 16px;">➕ Добавить транспорт</button>
+
+    <table id="vehiclesTable">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Марка</th>
+            <th>Модель</th>
+            <th>Номер</th>
+            <th>Грузоподъёмность (т)</th>
+            <th>Статус</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr><td colspan="7">Загрузка...</td></tr>
+        </tbody>
+    </table>
+
+    <!-- Модальное окно -->
+    <div id="vehicleModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
+        <div style="background:white; margin:50px auto; padding:24px; width:90%; max-width:600px; border-radius:12px;">
+            <h3 id="vehicleModalTitle">Добавить транспорт</h3>
+            <form id="vehicleForm">
+                <input type="hidden" id="vehicleId" />
+
+                <div class="form-group">
+                    <label for="vehicleBrand">Марка *</label>
+                    <input type="text" id="vehicleBrand" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="vehicleModel">Модель *</label>
+                    <input type="text" id="vehicleModel" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="vehicleLicense">Гос. номер *</label>
+                    <input type="text" id="vehicleLicense" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="vehicleCapacity">Грузоподъёмность (т)</label>
+                    <input type="number" id="vehicleCapacity" step="0.01" />
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="vehicleIsWorking"> В рабочем состоянии
+                    </label>
+                </div>
+
+                <div style="display:flex; gap:12px; margin-top:20px;">
+                    <button type="submit" class="btn">Сохранить</button>
+                    <button type="button" id="cancelVehicleBtn" class="btn" style="background:#ccc;">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    // Установка размера окна
+    window.electronAPI.setWindowSize(1000, 720);
+
+    let currentDriver = null;
+
+    // Загрузка пользователя
+    window.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const user = await window.electronAPI.getCurrentUser();
+            if (user && user.role === 'driver') {
+                currentDriver = user;
+                document.getElementById('userInfo').textContent =
+                    `${user.lastName} ${user.firstName} (водитель)`;
+                loadDriverRoutes();
+            } else {
+                alert('Доступ запрещён');
+                window.location.href = '../login.html';
+            }
+        } catch (err) {
+            console.error('Ошибка загрузки пользователя:', err);
+            alert('Ошибка авторизации');
+        }
+    });
+
+    // Загрузка рейсов
+    async function loadDriverRoutes() {
+        const tbody = document.querySelector('#routesTable tbody');
+        try {
+            const res = await window.electronAPI.getDriverRoutes(currentDriver.id);
+            if (!res.success) throw new Error(res.message);
+
+            const routes = res.routes;
+            if (routes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">Нет назначенных рейсов</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = routes.map(r => {
+                const start = r.startDate ? new Date(r.startDate).toLocaleString('ru-RU') : '—';
+                const end = r.endDate ? new Date(r.endDate).toLocaleString('ru-RU') : '—';
+                return `
+            <tr>
+              <td>${r.routeId}</td>
+              <td>#${r.orderId}</td>
+              <td>${r.departurePoint} → ${r.destinationPoint}</td>
+              <td>${r.status || '—'}</td>
+              <td>${start}<br>${end}</td>
+              <td>
+                <button class="btn-edit-route" data-id="${r.routeId}">✏️</button>
+                <button class="btn-delete-route" data-id="${r.routeId}">🗑️</button>
+              </td>
+            </tr>
+          `;
+            }).join('');
+        } catch (err) {
+            console.error('Ошибка загрузки рейсов:', err);
+            tbody.innerHTML = `<tr><td colspan="6">Ошибка: ${err.message}</td></tr>`;
+        }
+    }
+
+    // Открытие формы создания
+    document.getElementById('addRouteBtn').addEventListener('click', () => {
+        document.getElementById('routeModalTitle').textContent = 'Добавить рейс';
+        document.getElementById('routeId').value = '';
+        document.getElementById('routeForm').reset();
+        document.getElementById('routeModal').style.display = 'block';
+    });
+
+    // Сохранение формы
+    document.getElementById('routeForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const routeId = document.getElementById('routeId').value;
+        const data = {
+            orderId: parseInt(document.getElementById('routeOrder').value),
+            departurePoint: document.getElementById('routeStart').value,
+            destinationPoint: document.getElementById('routeEnd').value,
+            startDate: document.getElementById('routeStartDateTime').value
+                ? new Date(document.getElementById('routeStartDateTime').value) : null,
+            endDate: document.getElementById('routeEndDateTime').value
+                ? new Date(document.getElementById('routeEndDateTime').value) : null,
+            distance: parseFloat(document.getElementById('routeDistance').value) || null,
+            driverId: currentDriver.id,
+        };
+
+        let res;
+        if (routeId) {
+            res = await window.electronAPI.updateRouteAsDriver(routeId, data);
+        } else {
+            res = await window.electronAPI.createRouteAsDriver(data);
+        }
+
+        if (res.success) {
+            alert(routeId ? 'Рейс обновлён' : 'Рейс добавлен');
+            document.getElementById('routeModal').style.display = 'none';
+            loadDriverRoutes();
+        } else {
+            alert('Ошибка: ' + res.message);
+        }
+    });
+
+    // Редактирование и удаление
+    document.getElementById('routesTable').addEventListener('click', async (e) => {
+        if (e.target.classList.contains('btn-edit-route')) {
+            const routeId = e.target.dataset.id;
+            const res = await window.electronAPI.getDriverRoutes(currentDriver.id);
+            const route = res.routes.find(r => r.routeId == routeId);
+            if (route) {
+                document.getElementById('routeModalTitle').textContent = 'Редактировать рейс';
+                document.getElementById('routeId').value = route.routeId;
+                document.getElementById('routeOrder').value = route.orderId;
+                document.getElementById('routeStart').value = route.departurePoint;
+                document.getElementById('routeEnd').value = route.destinationPoint;
+                document.getElementById('routeStartDateTime').value = route.startDate
+                    ? new Date(route.startDate).toISOString().slice(0, 16) : '';
+                document.getElementById('routeEndDateTime').value = route.endDate
+                    ? new Date(route.endDate).toISOString().slice(0, 16) : '';
+                document.getElementById('routeDistance').value = route.distance || '';
+                document.getElementById('routeModal').style.display = 'block';
+            }
+        }
+
+        if (e.target.classList.contains('btn-delete-route')) {
+            const routeId = e.target.dataset.id;
+            if (confirm('Удалить рейс?')) {
+                const res = await window.electronAPI.deleteRouteAsDriver({ routeId, driverId: currentDriver.id });
+                if (res.success) {
+                    alert('Рейс удалён');
+                    loadDriverRoutes();
+                } else {
+                    alert('Ошибка: ' + res.message);
+                }
+            }
+        }
+    });
+
+    // Отмена модального окна
+    document.getElementById('cancelRouteBtn').addEventListener('click', () => {
+        document.getElementById('routeModal').style.display = 'none';
+    });
+
+    // Кнопка выхода
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        if (confirm('Вы действительно хотите выйти?')) {
+            await window.electronAPI.logout();
+            window.electronAPI.openLoginWindow();
+            window.close();
+        }
+    });
+    // Загрузка нарушений
+    async function loadViolations() {
+        const tbody = document.querySelector('#violationsTable tbody');
+        try {
+            const res = await window.electronAPI.getDriverViolations(currentDriver.id);
+            if (!res.success) throw new Error(res.message);
+
+            const violations = res.violations;
+            if (violations.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7">Нет нарушений</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = violations.map(v => `
+      <tr>
+        <td>${v.violationId}</td>
+        <td>Рейс #${v.routeId} (Заказ #${v.orderId})</td>
+        <td>${v.type === 'accident' ? 'ДТП' : 'Штраф'}</td>
+        <td>${v.description || '—'}</td>
+        <td>${v.amount ? v.amount + ' ₽' : '—'}</td>
+        <td>${new Date(v.occurredAt).toLocaleString('ru-RU')}</td>
+        <td>
+          <button class="btn-edit-violation" data-id="${v.id}">✏️</button>
+          <button class="btn-delete-violation" data-id="${v.id}">🗑️</button>
+        </td>
+      </tr>
+    `).join('');
+        } catch (err) {
+            console.error('Ошибка загрузки нарушений:', err);
+            tbody.innerHTML = `<tr><td colspan="7">Ошибка: ${err.message}</td></tr>`;
+        }
+    }
+
+    // Загрузка рейсов в селект
+    async function loadRoutesForViolations() {
+        const select = document.getElementById('violationRoute');
+        select.innerHTML = '<option value="">— Загрузка... —</option>';
+
+        try {
+            const res = await window.electronAPI.getDriverRoutesForViolations(currentDriver.id);
+            if (!res.success) throw new Error(res.message);
+
+            select.innerHTML = '<option value="">— Выберите рейс —</option>';
+            res.routes.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.routeId;
+                opt.textContent = `Рейс #${r.routeId} — ${r.departurePoint} → ${r.destinationPoint}`;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error('Ошибка загрузки рейсов для нарушений:', err);
+            select.innerHTML = '<option value="">Ошибка</option>';
+        }
+    }
+
+    // Открытие формы создания
+    document.getElementById('addViolationBtn').addEventListener('click', () => {
+        loadRoutesForViolations();
+        document.getElementById('violationModalTitle').textContent = 'Добавить нарушение';
+        document.getElementById('violationId').value = '';
+        document.getElementById('violationForm').reset();
+        document.getElementById('violationModal').style.display = 'block';
+    });
+
+    // Сохранение нарушения
+    document.getElementById('violationForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const violationId = document.getElementById('violationId').value;
+        const type = document.querySelector('input[name="violationType"]:checked')?.value;
+        if (!type) {
+            alert('Выберите тип нарушения');
+            return;
+        }
+
+        const data = {
+            routeId: parseInt(document.getElementById('violationRoute').value),
+            type,
+            description: document.getElementById('violationDesc').value || null,
+            amount: parseFloat(document.getElementById('violationAmount').value) || null,
+            occurredAt: document.getElementById('violationDate').value
+                ? new Date(document.getElementById('violationDate').value) : null
+        };
+
+        if (!data.routeId) {
+            alert('Выберите рейс');
+            return;
+        }
+
+        let res;
+        if (violationId) {
+            res = await window.electronAPI.updateViolation(violationId, data);
+        } else {
+            res = await window.electronAPI.createViolation(data);
+        }
+
+        if (res.success) {
+            alert(violationId ? 'Нарушение обновлено' : 'Нарушение добавлено');
+            document.getElementById('violationModal').style.display = 'none';
+            loadViolations();
+        } else {
+            alert('Ошибка: ' + res.message);
+        }
+    });
+
+    // Редактирование и удаление
+    document.getElementById('violationsTable').addEventListener('click', async (e) => {
+        if (e.target.classList.contains('btn-edit-violation')) {
+            const violationId = e.target.dataset.id;
+            const res = await window.electronAPI.getDriverViolations(currentDriver.id);
+            const violation = res.violations.find(v => v.id == violationId);
+            if (violation) {
+                loadRoutesForViolations();
+                document.getElementById('violationModalTitle').textContent = 'Редактировать нарушение';
+                document.getElementById('violationId').value = violation.id;
+
+                // Установим значения
+                document.getElementById('violationRoute').value = violation.routeId;
+                document.querySelector(`input[name="violationType"][value="${violation.type}"]`).checked = true;
+                document.getElementById('violationDesc').value = violation.description || '';
+                document.getElementById('violationAmount').value = violation.amount || '';
+                document.getElementById('violationDate').value = violation.occurredAt
+                    ? new Date(violation.occurredAt).toISOString().slice(0, 16) : '';
+
+                document.getElementById('violationModal').style.display = 'block';
+            }
+        }
+
+        if (e.target.classList.contains('btn-delete-violation')) {
+            const violationId = e.target.dataset.id;
+            if (confirm('Удалить нарушение?')) {
+                const res = await window.electronAPI.deleteViolation(violationId);
+                if (res.success) {
+                    alert('Нарушение удалено');
+                    loadViolations();
+                } else {
+                    alert('Ошибка: ' + res.message);
+                }
+            }
+        }
+    });
+
+    // Отмена
+    document.getElementById('cancelViolationBtn').addEventListener('click', () => {
+        document.getElementById('violationModal').style.display = 'none';
+    });
+
+    // При открытии вкладки
+    document.querySelector('[data-tab="violations"]').addEventListener('click', loadViolations);
+    document.addEventListener('DOMContentLoaded', () => {
+        // Находим все кнопки вкладок
+        const tabButtons = document.querySelectorAll('.tab-btn');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // 1. Убираем класс 'active' у всех кнопок
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+
+                // 2. Добавляем 'active' текущей кнопке
+                button.classList.add('active');
+
+                // 3. Скрываем все контенты вкладок
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // 4. Показываем нужный контент
+                const targetTabId = button.dataset.tab;
+                const targetContent = document.getElementById(targetTabId);
+                if (targetContent) {
+                    targetContent.classList.add('active');
+
+                    // 5. Автоматическая загрузка данных при открытии вкладки (опционально)
+                    if (targetTabId === 'violations' && typeof loadViolations === 'function') {
+                        loadViolations();
+                    }
+                    if (targetTabId === 'my-routes' && typeof loadDriverRoutes === 'function') {
+                        loadDriverRoutes();
+                    }
+                }
+            });
+        });
+    });
+//----------fuel-----------------
+    // Автоматический расчёт итоговой стоимости
+    function updateFuelTotal() {
+        const volume = parseFloat(document.getElementById('fuelVolume').value) || 0;
+        const price = parseFloat(document.getElementById('fuelPrice').value) || 0;
+        document.getElementById('fuelTotal').value = (volume * price).toFixed(2);
+    }
+
+    // Загрузка заправок
+    async function loadFuel() {
+        const tbody = document.querySelector('#fuelTable tbody');
+        try {
+            const res = await window.electronAPI.getDriverFuel(currentDriver.id);
+            if (!res.success) throw new Error(res.message);
+
+            const fuelList = res.fuel;
+            if (fuelList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8">Нет заправок</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = fuelList.map(f => `
+      <tr>
+        <td>${f.fuelId}</td>
+        <td>Рейс #${f.routeId} (Заказ #${f.orderId})</td>
+        <td>${f.fuelType}</td>
+        <td>${f.volume} л</td>
+        <td>${f.pricePerLiter} ₽</td>
+        <td>${f.totalCost} ₽</td>
+        <td>${new Date(f.refuelDate).toLocaleString('ru-RU')}</td>
+        <td>
+          <button class="btn-edit-fuel" data-id="${f.fuelId}">✏️</button>
+          <button class="btn-delete-fuel" data-id="${f.fuelId}">🗑️</button>
+        </td>
+      </tr>
+    `).join('');
+        } catch (err) {
+            console.error('Ошибка загрузки заправок:', err);
+            tbody.innerHTML = `<tr><td colspan="8">Ошибка: ${err.message}</td></tr>`;
+        }
+    }
+
+    // Загрузка рейсов в селект
+    async function loadRoutesForFuel() {
+        const select = document.getElementById('fuelRoute');
+        select.innerHTML = '<option value="">— Загрузка... —</option>';
+
+        try {
+            const res = await window.electronAPI.getDriverRoutesForFuel(currentDriver.id);
+            if (!res.success) throw new Error(res.message);
+
+            select.innerHTML = '<option value="">— Выберите рейс —</option>';
+            res.routes.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.routeId;
+                opt.textContent = `Рейс #${r.routeId} — ${r.departurePoint} → ${r.destinationPoint}`;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error('Ошибка загрузки рейсов для топлива:', err);
+            select.innerHTML = '<option value="">Ошибка</option>';
+        }
+    }
+
+    // Загрузка транспорта
+    async function loadVehicles() {
+        const tbody = document.querySelector('#vehiclesTable tbody');
+        try {
+            const res = await window.electronAPI.getDriverVehicles();
+            if (!res.success) throw new Error(res.message);
+
+            const vehicles = res.vehicles;
+            if (vehicles.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7">Нет транспортных средств</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = vehicles.map(v => `
+      <tr>
+        <td>${v.vehicleId}</td>
+        <td>${v.brand}</td>
+        <td>${v.model}</td>
+        <td>${v.licensePlate}</td>
+        <td>${v.capacity || '—'}</td>
+        <td>
+          <span style="color: ${v.isWorking ? 'green' : 'red'};">
+            ${v.isWorking ? '✅ Работает' : '❌ Не работает'}
+          </span>
+        </td>
+        <td>
+          <button class="btn-edit-vehicle" data-id="${v.id}">✏️</button>
+          <button class="btn-delete-vehicle" data-id="${v.id}">🗑️</button>
+        </td>
+      </tr>
+    `).join('');
+        } catch (err) {
+            console.error('Ошибка загрузки транспорта:', err);
+            tbody.innerHTML = `<tr><td colspan="7">Ошибка: ${err.message}</td></tr>`;
+        }
+    }
+
+    // Открытие формы создания
+    document.getElementById('addVehicleBtn').addEventListener('click', () => {
+        document.getElementById('vehicleModalTitle').textContent = 'Добавить транспорт';
+        document.getElementById('vehicleId').value = '';
+        document.getElementById('vehicleForm').reset();
+        document.getElementById('vehicleIsWorking').checked = true;
+        document.getElementById('vehicleModal').style.display = 'block';
+    });
+
+    // Сохранение
+    document.getElementById('vehicleForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const vehicleId = document.getElementById('vehicleId').value;
+        const data = {
+            brand: document.getElementById('vehicleBrand').value,
+            model: document.getElementById('vehicleModel').value,
+            licensePlate: document.getElementById('vehicleLicense').value,
+            capacity: parseFloat(document.getElementById('vehicleCapacity').value) || null,
+            isWorking: document.getElementById('vehicleIsWorking').checked
+        };
+
+        if (!data.brand || !data.model || !data.licensePlate) {
+            alert('Заполните обязательные поля');
+            return;
+        }
+
+        let res;
+        if (vehicleId) {
+            res = await window.electronAPI.updateVehicle(vehicleId, data);
+        } else {
+            res = await window.electronAPI.createVehicle(data);
+        }
+
+        if (res.success) {
+            alert(vehicleId ? 'Транспорт обновлён' : 'Транспорт добавлен');
+            document.getElementById('vehicleModal').style.display = 'none';
+            loadVehicles();
+        } else {
+            alert('Ошибка: ' + res.message);
+        }
+    });
+
+    // Редактирование и удаление
+    document.getElementById('vehiclesTable').addEventListener('click', async (e) => {
+        if (e.target.classList.contains('btn-edit-vehicle')) {
+            const vehicleId = e.target.dataset.id;
+            const res = await window.electronAPI.getDriverVehicles();
+            const vehicle = res.vehicles.find(v => v.id == vehicleId);
+            if (vehicle) {
+                document.getElementById('vehicleModalTitle').textContent = 'Редактировать транспорт';
+                document.getElementById('vehicleId').value = vehicle.id;
+                document.getElementById('vehicleBrand').value = vehicle.brand;
+                document.getElementById('vehicleModel').value = vehicle.model;
+                document.getElementById('vehicleLicense').value = vehicle.licensePlate;
+                document.getElementById('vehicleCapacity').value = vehicle.capacity || '';
+                document.getElementById('vehicleIsWorking').checked = vehicle.isWorking;
+                document.getElementById('vehicleModal').style.display = 'block';
+            }
+        }
+
+        if (e.target.classList.contains('btn-delete-vehicle')) {
+            const vehicleId = e.target.dataset.id;
+            if (confirm('Удалить транспорт?')) {
+                const res = await window.electronAPI.deleteVehicle(vehicleId);
+                if (res.success) {
+                    alert('Транспорт удалён');
+                    loadVehicles();
+                } else {
+                    alert('Ошибка: ' + res.message);
+                }
+            }
+        }
+    });
+
+    // Отмена
+    document.getElementById('cancelVehicleBtn').addEventListener('click', () => {
+        document.getElementById('vehicleModal').style.display = 'none';
+    });
+
+    // При открытии вкладки
+    document.querySelector('[data-tab="vehicles"]').addEventListener('click', loadVehicles);
+
+    // Открытие формы создания
+    document.getElementById('addFuelBtn').addEventListener('click', () => {
+        loadRoutesForFuel();
+        document.getElementById('fuelModalTitle').textContent = 'Добавить заправку';
+        document.getElementById('fuelId').value = '';
+        document.getElementById('fuelForm').reset();
+        document.getElementById('fuelTotal').value = '';
+        document.getElementById('fuelModal').style.display = 'block';
+    });
+
+    // Автопересчёт итога
+    document.getElementById('fuelVolume')?.addEventListener('input', updateFuelTotal);
+    document.getElementById('fuelPrice')?.addEventListener('input', updateFuelTotal);
+
+    // Сохранение
+    document.getElementById('fuelForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const fuelId = document.getElementById('fuelId').value;
+        const data = {
+            routeId: parseInt(document.getElementById('fuelRoute').value),
+            fuelType: document.getElementById('fuelType').value,
+            volume: parseFloat(document.getElementById('fuelVolume').value),
+            pricePerLiter: parseFloat(document.getElementById('fuelPrice').value),
+            totalCost: parseFloat(document.getElementById('fuelTotal').value),
+            refuelDate: new Date(document.getElementById('fuelDate').value)
+        };
+
+        if (!data.routeId || !data.fuelType || !data.volume || !data.pricePerLiter || !data.refuelDate) {
+            alert('Заполните все обязательные поля');
+            return;
+        }
+
+        let res;
+        if (fuelId) {
+            res = await window.electronAPI.updateFuel(fuelId, data);
+        } else {
+            res = await window.electronAPI.createFuel(data);
+        }
+
+        if (res.success) {
+            alert(fuelId ? 'Заправка обновлена' : 'Заправка добавлена');
+            document.getElementById('fuelModal').style.display = 'none';
+            loadFuel();
+        } else {
+            alert('Ошибка: ' + res.message);
+        }
+    });
+
+    // Редактирование и удаление
+    document.getElementById('fuelTable').addEventListener('click', async (e) => {
+        if (e.target.classList.contains('btn-edit-fuel')) {
+            const fuelId = e.target.dataset.id;
+            const res = await window.electronAPI.getDriverFuel(currentDriver.id);
+            const fuel = res.fuel.find(f => f.fuelId == fuelId);
+            if (fuel) {
+                loadRoutesForFuel();
+                document.getElementById('fuelModalTitle').textContent = 'Редактировать заправку';
+                document.getElementById('fuelId').value = fuel.fuelId;
+                document.getElementById('fuelRoute').value = fuel.routeId;
+                document.getElementById('fuelType').value = fuel.fuelType;
+                document.getElementById('fuelVolume').value = fuel.volume;
+                document.getElementById('fuelPrice').value = fuel.pricePerLiter;
+                document.getElementById('fuelTotal').value = fuel.totalCost;
+                document.getElementById('fuelDate').value = new Date(fuel.refuelDate).toISOString().slice(0, 16);
+                document.getElementById('fuelModal').style.display = 'block';
+            }
+        }
+
+        if (e.target.classList.contains('btn-delete-fuel')) {
+            const fuelId = e.target.dataset.id;
+            if (confirm('Удалить заправку?')) {
+                const res = await window.electronAPI.deleteFuel(fuelId);
+                if (res.success) {
+                    alert('Заправка удалена');
+                    loadFuel();
+                } else {
+                    alert('Ошибка: ' + res.message);
+                }
+            }
+        }
+    });
+
+    // Отмена
+    document.getElementById('cancelFuelBtn').addEventListener('click', () => {
+        document.getElementById('fuelModal').style.display = 'none';
+    });
+
+    // При открытии вкладки
+    document.querySelector('[data-tab="fuel"]').addEventListener('click', loadFuel);
+</script>
+</body>
+</html>

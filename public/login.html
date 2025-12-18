@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Вход в систему</title>
+    <link rel="stylesheet" href="./styles/login.css" />
+</head>
+<body>
+<div class="login-container">
+    <h1>Вход</h1>
+    <form id="loginForm">
+        <div class="input-group">
+            <label for="username">Логин</label>
+            <input type="text" id="username" name="username" required />
+        </div>
+
+        <div class="input-group">
+            <label for="password">Пароль</label>
+            <input type="password" id="password" name="password" required />
+        </div>
+
+        <div class="input-group">
+            <label for="role">Роль</label>
+            <select id="role" name="role" required>
+                <option value="" disabled selected>Выберите роль</option>
+                <option value="admin">Администратор</option>
+                <option value="logistician">Логист</option>
+                <option value="client">Клиент</option>
+                <option value="driver">Водитель</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn-login">Войти</button>
+
+        <div class="links">
+            <button type="button" class="link-btn" id="noAccount">Нет аккаунта?</button>
+            <button type="button" class="link-btn" id="forgotPassword">Забыли пароль?</button>
+        </div>
+        <div style="text-align: center; margin-top: 20px;">
+            <button type="button" class="link-btn" id="openHelpBtn">📖 Руководство пользователя</button>
+        </div>
+    </form>
+</div>
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        window.electronAPI.setWindowSize(500, 600);
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        const role = document.getElementById('role').value;
+
+        if (!username || !password || !role) {
+            alert('Заполните все поля');
+            return;
+        }
+
+        try {
+            const response = await window.electronAPI.login({ identifier: username, password });
+            if (response.success) {
+                alert(`Добро пожаловать, ${response.user.firstName}!`);
+                console.log('Пользователь:', response.user);
+                // Здесь можно перейти в главное окно приложения
+                const user = response.user;
+                if (user.role === 'logistician') {
+                    window.location.href = './logisticians/mainPage.html';
+                } else if (user.role === 'client') {
+                    window.location.href = './clients/dashboard.html'; // позже
+                } else if (user.role === 'driver') {
+                    window.location.href = './drivers/dashboard.html'; // позже
+                } else if (user.role === 'admin') {
+                    window.location.href = './admins/dashboard.html'; // позже
+                }
+            } else {
+                alert(response.message);
+            }
+        } catch (err) {
+            alert('Произошла ошибка при входе');
+            console.error(err);
+        }
+    });
+
+    document.getElementById('noAccount').addEventListener('click', () => {
+        window.location.href = './register.html';
+    })
+//Заглушка
+    document.getElementById('forgotPassword').addEventListener('click', () => {
+        alert('Восстановление пароля пока недоступно');
+    });
+    document.getElementById('openHelpBtn').addEventListener('click', () => {
+        window.electronAPI.openHelpWindow();
+    });
+</script>
+</body>
+</html>

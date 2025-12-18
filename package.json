@@ -1,0 +1,26 @@
+{
+  "name": "CargoTransport",
+  "version": "1.0.0",
+  "main": "dist/main.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && electron ."
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/exceljs": "^1.3.2",
+    "@types/node": "^24.10.1",
+    "@types/pg": "^8.15.6",
+    "electron": "^39.2.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "docx": "^9.5.1",
+    "dotenv": "^17.2.3",
+    "exceljs": "^4.4.0",
+    "pg": "^8.16.3"
+  }
+}

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Руководство пользователя</title>
+    <style>
+        :root {
+            --green-primary: #2e7d32;
+            --green-light: #a5d6a7;
+            --green-dark: #1b5e20;
+            --bg-color: #f9f9f9;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background-color: var(--green-primary);
+            color: white;
+            padding: 16px 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        .content {
+            max-width: 800px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section h2 {
+            color: var(--green-primary);
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            margin-top: 32px;
+            margin-bottom: 16px;
+        }
+
+        .section h3 {
+            color: var(--green-dark);
+            margin: 20px 0 12px;
+        }
+
+        .role-list {
+            padding-left: 20px;
+        }
+
+        .role-list li {
+            margin-bottom: 8px;
+        }
+
+        .btn-back {
+            display: block;
+            margin: 32px auto 0;
+            padding: 12px 24px;
+            background-color: var(--green-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            width: fit-content;
+        }
+
+        .btn-back:hover {
+            background-color: var(--green-dark);
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>Руководство пользователя ИС</h1>
+    <p>Система: «Управление грузоперевозками CargoTransport»<br>Версия: 1.0</p>
+</div>
+
+<div class="content">
+    <div class="section">
+        <h2>Общие сведения</h2>
+        <p>
+            Данная информационная система предназначена для автоматизации процессов, связанных с организацией грузоперевозок: приём заказов, планирование маршрутов, управление рейсами, контроль выполнения перевозок, ведение базы клиентов, водителей, транспорта и грузов.
+        </p>
+        <p>
+            В системе реализована поддержка ролей: администратор, логист, водитель и клиент. Каждая роль имеет ограниченный доступ к функциям системы в соответствии с уровнем ответственности и задачами пользователя. Это обеспечивает безопасность данных и разделение обязанностей.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>Роли и функции</h2>
+
+        <h3>Администратор</h3>
+        <ul class="role-list">
+            <li>Управление пользователями системы (создание, блокировка, изменение ролей)</li>
+            <li>Просмотр и редактирование всех основных справочников (клиенты, водители, транспорт, маршруты)</li>
+            <li>Управление правами доступа</li>
+            <li>Просмотр и составление различных отчетов</li>
+        </ul>
+
+        <h3>Логист</h3>
+        <ul class="role-list">
+            <li>Создание и обработка заявок на перевозку</li>
+            <li>Назначение маршрутов и формирование рейсов</li>
+            <li>Закрепление транспортного средства и водителя за рейсом</li>
+            <li>Контроль прохождения рейсов (статусы, отчёты водителей)</li>
+            <li>Управление грузами и планирование загрузки</li>
+        </ul>
+
+        <h3>Водитель</h3>
+        <ul class="role-list">
+            <li>Просмотр назначенных рейсов</li>
+            <li>Получение информации о грузе, маршруте, точках отправления и прибытия</li>
+            <li>Подтверждение начала и завершения рейса</li>
+            <li>Ввод фактических данных (затраты топлива, время прохождения, статус груза)</li>
+            <li>Получение уведомлений о новых заданиях</li>
+        </ul>
+
+        <h3>Клиент</h3>
+        <ul class="role-list">
+            <li>Регистрация и авторизация в системе</li>
+            <li>Создание заявок на перевозку грузов</li>
+            <li>Просмотр статуса своих отправлений</li>
+            <li>Получение уведомлений о прибытии груза или изменении статуса</li>
+            <li>Просмотр истории заказов</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Технические требования</h2>
+        <p>
+            Для работы с системой требуется:
+        </p>
+        <ul>
+            <li>Операционная система: Windows 10/11 или любой современный браузер (Chrome, Firefox, Edge)</li>
+            <li>Серверная часть: PostgreSQL 15+</li>
+            <li>Подключение к локальной сети или интернету</li>
+            <li>Поддержка JavaScript и HTTPS</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Поддержка</h2>
+        <p>
+            При возникновении вопросов обращайтесь к системному администратору или используйте встроенный модуль техподдержки.
+        </p>
+        <p>
+            При необходимости повторной авторизации воспользуйтесь кнопкой «Выход».
+        </p>
+    </div>
+
+    <button class="btn-back" id="backToLoginBtn">← Вернуться к авторизации</button>
+</div>
+
+<script>
+    document.getElementById('backToLoginBtn').addEventListener('click', () => {
+        window.close(); // закрываем только окно руководства
+    });
+</script>
+</body>
+</html>

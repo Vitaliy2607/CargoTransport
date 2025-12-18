@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Админка</title>
+    <style>
+        :root {
+            --green: #2e7d32;
+            --bg: #f9f9f9;
+            --text: #333;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background: var(--green);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #eee;
+        }
+        .tab-btn {
+            padding: 14px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #555;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn.active {
+            color: var(--green);
+            border-bottom: 3px solid var(--green);
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+            padding: 24px;
+            background: white;
+            min-height: 500px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Стили для CRUD (как раньше) */
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #f0f0f0;
+        }
+        .btn {
+            padding: 8px 16px;
+            background: var(--green);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+        .btn-danger {
+            background: #f44336;
+        }
+        /* Модальное окно */
+        #universalCrudModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        #universalCrudModal > div {
+            background: white;
+            margin: 50px auto;
+            padding: 24px;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h2>Панель администратора</h2>
+    <div>
+        <span id="userInfo">Загрузка...</span>
+        <button class="btn btn-danger" id="logoutBtn">Выйти</button>
+    </div>
+</div>
+
+<!-- Вкладки -->
+<div class="tabs">
+    <button class="tab-btn active" data-tab="crud">Просмотр/редактирование таблиц в БД</button>
+    <button class="tab-btn" data-tab="reports">Формирование отчетности</button>
+</div>
+
+<!-- Вкладка 1: Универсальный CRUD -->
+<div id="crud" class="tab-content active">
+    <h3>Редактирование таблиц</h3>
+    <div class="form-group">
+        <label for="tableSelect">Выберите таблицу</label>
+        <select id="tableSelect">
+            <option value="">— Загрузка таблиц —</option>
+        </select>
+    </div>
+    <button class="btn" id="addRecordBtn">➕ Добавить запись</button>
+    <div id="tableContainer">
+        <p>Выберите таблицу</p>
+    </div>
+</div>
+
+<!-- Вкладка 2: Отчёты -->
+<div id="reports" class="tab-content">
+    <h3>Отчёты</h3>
+
+    <div style="margin-bottom: 24px; padding: 16px; border: 1px solid #eee; border-radius: 8px;">
+        <h4>Выручка по месяцам</h4>
+        <p>Анализ доходов от завершённых заказов за последние 12 месяцев.</p>
+        <div>
+            <button class="btn" id="exportRevenueExcel">📄 Excel</button>
+            <button class="btn" id="exportRevenueWord">📝 Word</button>
+        </div>
+    </div>
+
+    <!-- Аналогично для других отчётов -->
+    <div style="margin-bottom: 24px; padding: 16px; border: 1px solid #eee; border-radius: 8px;">
+        <h4>Завершённые рейсы</h4>
+        <p>Статистика по доставленным грузам.</p>
+        <div>
+            <button class="btn" disabled>📄 Excel</button>
+            <button class="btn" disabled>📝 Word</button>
+        </div>
+    </div>
+
+    <div style="margin-bottom: 24px; padding: 16px; border: 1px solid #eee; border-radius: 8px;">
+        <h4>Нарушения по водителям</h4>
+        <p>Рейтинг водителей по количеству ДТП и штрафов.</p>
+        <div>
+            <button class="btn" disabled>📄 Excel</button>
+            <button class="btn" disabled>📝 Word</button>
+        </div>
+    </div>
+
+    <div style="margin-bottom: 24px; padding: 16px; border: 1px solid #eee; border-radius: 8px;">
+        <h4>Расход топлива</h4>
+        <p>Анализ затрат на топливо по транспорту и маршрутам.</p>
+        <div>
+            <button class="btn" disabled>📄 Excel</button>
+            <button class="btn" disabled>📝 Word</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно CRUD -->
+<div id="universalCrudModal">
+    <div>
+        <h3 id="crudModalTitle">Добавить запись</h3>
+        <form id="crudForm">
+            <input type="hidden" id="crudRecordId" />
+            <div id="crudFormFields"></div>
+            <div style="margin-top: 16px;">
+                <button type="submit" class="btn">Сохранить</button>
+                <button type="button" id="cancelCrudBtn" class="btn" style="background:#ccc;">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Установка размера
+    window.electronAPI.setWindowSize(1100, 800);
+
+    let currentAdmin = null;
+    let currentTable = null;
+    let tableSchema = [];
+
+    // Загрузка пользователя
+    window.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const user = await window.electronAPI.getCurrentUser();
+            if (user && user.role === 'admin') {
+                currentAdmin = user;
+                document.getElementById('userInfo').textContent = `${user.lastName} ${user.firstName} (админ)`;
+                loadTableList();
+            } else {
+                window.location.href = '../login.html';
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Ошибка авторизации');
+        }
+    });
+    // 🔥 УНИВЕРСАЛЬНОЕ ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
+    document.addEventListener('DOMContentLoaded', () => {
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Убираем active у всех
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Добавляем active текущей
+                button.classList.add('active');
+                const tabId = button.dataset.tab;
+                document.getElementById(tabId).classList.add('active');
+
+                // Особая логика для вкладки CRUD
+                if (tabId === 'crud' && !currentTable) {
+                    loadTableList();
+                }
+            });
+        });
+    });
+    // Загрузка списка таблиц
+    async function loadTableList() {
+        const select = document.getElementById('tableSelect');
+        select.innerHTML = '<option value="">— Загрузка... —</option>';
+        try {
+            const res = await window.electronAPI.getAdminTables();
+            if (!res.success) throw new Error(res.message);
+
+            select.innerHTML = '<option value="">— Выберите таблицу —</option>';
+            res.tables.forEach(table => {
+                const opt = document.createElement('option');
+                opt.value = table;
+                opt.textContent = table;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error('Ошибка загрузки таблиц:', err);
+            select.innerHTML = '<option value="">Ошибка</option>';
+        }
+    }
+
+    // Загрузка данных таблицы
+    async function loadTableData(tableName) {
+        const container = document.getElementById('tableContainer');
+        container.innerHTML = '<p>Загрузка...</p>';
+
+        try {
+            const schemaRes = await window.electronAPI.getTableSchema(tableName);
+            if (!schemaRes.success) throw new Error(schemaRes.message);
+            tableSchema = schemaRes.schema;
+
+            const dataRes = await window.electronAPI.getTableData(tableName);
+            if (!dataRes.success) throw new Error(dataRes.message);
+            const data = dataRes.data;
+
+            // Генерация заголовков
+            const thead = document.createElement('thead');
+            thead.innerHTML = `<tr>${tableSchema.map(col => `<th>${col.column_name}</th>`).join('')}</tr>`;
+
+            // Генерация строк
+            const tbody = document.createElement('tbody');
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${tableSchema.length}">Нет данных</td></tr>`;
+            } else {
+                tbody.innerHTML = data.map(row => {
+                    const cells = tableSchema.map(col => {
+                        const value = row[col.column_name];
+                        if (value === null) return '<em>null</em>';
+                        if (typeof value === 'object') return JSON.stringify(value);
+                        return String(value);
+                    }).join('</td><td>');
+                    return `<tr data-id="${row[tableSchema[0].column_name]}"><td>${cells}</td><td>
+              <button class="btn edit-btn" data-id="${row[tableSchema[0].column_name]}">✏️</button>
+              <button class="btn btn-danger delete-btn" data-id="${row[tableSchema[0].column_name]}">🗑️</button>
+            </td></tr>`;
+                }).join('');
+            }
+
+            const table = document.createElement('table');
+            table.id = 'dataTable';
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            container.innerHTML = '';
+            container.appendChild(table);
+
+            currentTable = tableName;
+        } catch (err) {
+            console.error('Ошибка загрузки данных:', err);
+            container.innerHTML = `<p>Ошибка: ${err.message}</p>`;
+        }
+    }
+
+    // Переключение таблицы
+    document.getElementById('tableSelect').addEventListener('change', (e) => {
+        const tableName = e.target.value;
+        if (tableName) {
+            loadTableData(tableName);
+        } else {
+            document.getElementById('tableContainer').innerHTML = '<p>Выберите таблицу</p>';
+        }
+    });
+
+    // Открытие формы добавления
+    document.getElementById('addRecordBtn').addEventListener('click', () => {
+        if (!currentTable) {
+            alert('Сначала выберите таблицу');
+            return;
+        }
+        openCrudForm('add');
+    });
+
+    // Открытие формы редактирования
+    document.getElementById('tableContainer').addEventListener('click', (e) => {
+        if (e.target.classList.contains('edit-btn')) {
+            const id = e.target.dataset.id;
+            openCrudForm('edit', id);
+        }
+        if (e.target.classList.contains('delete-btn')) {
+            const id = e.target.dataset.id;
+            if (confirm('Удалить запись?')) {
+                deleteRecord(id);
+            }
+        }
+    });
+
+    // Открытие модального окна
+    function openCrudForm(mode, id = null) {
+        document.getElementById('crudRecordId').value = id || '';
+        document.getElementById('crudModalTitle').textContent = mode === 'add' ? 'Добавить запись' : 'Редактировать запись';
+        generateFormFields(mode, id);
+        document.getElementById('universalCrudModal').style.display = 'block';
+    }
+
+    // Генерация полей формы
+    function generateFormFields(mode, id) {
+        const container = document.getElementById('crudFormFields');
+        container.innerHTML = '';
+
+        tableSchema.forEach(col => {
+            // Не редактируем первичный ключ при добавлении
+            if (mode === 'add' && isPrimaryKey(col)) return;
+
+            const label = document.createElement('label');
+            label.textContent = col.column_name;
+            label.style.display = 'block';
+            label.style.marginBottom = '6px';
+
+            const input = document.createElement('input');
+            input.name = col.column_name;
+            input.style.width = '100%';
+            input.style.padding = '8px';
+
+            // Определяем тип поля
+            if (col.data_type === 'boolean') {
+                input.type = 'checkbox';
+                input.style.width = 'auto';
+            } else if (col.data_type.includes('int') || col.data_type === 'numeric') {
+                input.type = 'number';
+                input.step = 'any';
+            } else if (col.data_type.includes('timestamp')) {
+                input.type = 'datetime-local';
+            } else {
+                input.type = 'text';
+            }
+
+            // Если редактирование — заполняем значение
+            if (mode === 'edit') {
+                // Значение будет подставлено после загрузки данных
+            }
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.appendChild(label);
+            div.appendChild(input);
+            container.appendChild(div);
+        });
+    }
+
+    // Удаление записи
+    async function deleteRecord(id) {
+        try {
+            const res = await window.electronAPI.deleteTableRecord(currentTable, id);
+            if (res.success) {
+                alert('Запись удалена');
+                loadTableData(currentTable);
+            } else {
+                alert('Ошибка: ' + res.message);
+            }
+        } catch (err) {
+            alert('Ошибка: ' + err.message);
+        }
+    }
+
+    // Сохранение формы
+    document.getElementById('crudForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('crudRecordId').value;
+        const formData = new FormData(e.target);
+        const data = {};
+        for (let [key, value] of formData.entries()) {
+            if (tableSchema.find(col => col.column_name === key)?.data_type === 'boolean') {
+                data[key] = value === 'on';
+            } else if (value === '') {
+                data[key] = null;
+            } else {
+                data[key] = value;
+            }
+        }
+
+        try {
+            let res;
+            if (id) {
+                res = await window.electronAPI.updateTableRecord(currentTable, id, data);
+            } else {
+                res = await window.electronAPI.createTableRecord(currentTable, data);
+            }
+            if (res.success) {
+                alert('Сохранено');
+                document.getElementById('universalCrudModal').style.display = 'none';
+                loadTableData(currentTable);
+            } else {
+                alert('Ошибка: ' + res.message);
+            }
+        } catch (err) {
+            alert('Ошибка: ' + err.message);
+        }
+    });
+
+    // Закрытие модального окна
+    document.getElementById('cancelCrudBtn').addEventListener('click', () => {
+        document.getElementById('universalCrudModal').style.display = 'none';
+    });
+
+    // Вспомогательная функция: определить первичный ключ
+    function isPrimaryKey(column) {
+        // Упрощённо: считаем, что первичный ключ — первый столбец с именем *id
+        return column.column_name.toLowerCase().endsWith('id');
+    }
+
+    // Кнопка выхода
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        if (confirm('Выйти?')) {
+            await window.electronAPI.logout();
+            window.electronAPI.openLoginWindow();
+            window.close();
+        }
+    });
+    // Экспорт выручки
+    document.getElementById('exportRevenueExcel').addEventListener('click', async () => {
+        try {
+            const res = await window.electronAPI.exportRevenueToExcel();
+            if (res.success) {
+                alert(`✅ Отчёт сохранён:\n${res.filePath}`);
+            } else {
+                alert('❌ Ошибка: ' + res.message);
+            }
+        } catch (err) {
+            alert('❌ Ошибка экспорта: ' + err.message);
+        }
+    });
+
+    document.getElementById('exportRevenueWord').addEventListener('click', async () => {
+        try {
+            const res = await window.electronAPI.exportRevenueToWord();
+            if (res.success) {
+                alert(`✅ Отчёт сохранён:\n${res.filePath}`);
+            } else {
+                alert('❌ Ошибка: ' + res.message);
+            }
+        } catch (err) {
+            alert('❌ Ошибка экспорта: ' + err.message);
+        }
+    });
+</script>
+</body>
+</html>

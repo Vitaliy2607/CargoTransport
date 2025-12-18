@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Панель логиста</title>
+    <style>
+        :root {
+            --green-primary: #2e7d32;
+            --green-light: #a5d6a7;
+            --green-dark: #1b5e20;
+            --bg-color: #f9f9f9;
+            --text-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .header {
+            background-color: var(--green-primary);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 22px;
+        }
+
+        .user-info {
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #eee;
+        }
+
+        .tab-btn {
+            padding: 14px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #555;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: var(--green-primary);
+            border-bottom: 3px solid var(--green-primary);
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 24px;
+            background: white;
+            min-height: 500px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab-content h2 {
+            margin-bottom: 20px;
+            color: var(--green-primary);
+        }
+
+        /* Стили для форм и таблиц */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background-color: var(--green-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            background-color: var(--green-dark);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .btn-logout {
+            padding: 6px 12px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-logout:hover {
+            background-color: #d32f2f;
+        }
+        .btn-edit, .btn-delete {
+            padding: 4px 8px;
+            margin: 0 4px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-edit {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background-color: #388E3C;
+        }
+
+        .btn-delete {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #d32f2f;
+        }
+        /* Уже есть .btn-edit и .btn-delete, но для ясности: */
+        .btn-edit-driver, .btn-delete-driver {
+            padding: 4px 8px;
+            margin: 0 4px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-edit-driver {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .btn-edit-driver:hover {
+            background-color: #388E3C;
+        }
+
+        .btn-delete-driver {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .btn-delete-driver:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>Панель логиста</h1>
+    <div style="display: flex; align-items: center; gap: 16px;">
+        <div class="user-info" id="userInfo">Загрузка...</div>
+        <button id="logoutBtn" class="btn-logout">Выйти</button>
+    </div>
+</div>
+
+<div class="tabs">
+    <button class="tab-btn active" data-tab="create-route">Создание маршрута в БД</button>
+    <button class="tab-btn" data-tab="assign-driver">Назначение водителя в БД</button>
+    <button class="tab-btn" data-tab="orders">Просмотр активных заказов</button>
+    <button class="tab-btn" data-tab="drivers">БД Водители</button>
+    <button class="tab-btn" data-tab="routes">БД Маршруты</button> <!-- ← новая -->
+    <button class="tab-btn" data-tab="history">Просмотр истории рейсов</button>
+</div>
+
+<!-- Вкладки -->
+<div id="create-route" class="tab-content active">
+    <h2>Создать маршрут для заказа</h2>
+    <form id="routeForm">
+        <div class="form-group">
+            <label for="orderSelect">Заказ</label>
+            <select id="orderSelect" required>
+                <option value="">— Выберите заказ —</option>
+                <!-- заполнится JS -->
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="departure">Пункт отправления</label>
+            <input type="text" id="departure" required />
+        </div>
+        <div class="form-group">
+            <label for="destination">Пункт назначения</label>
+            <input type="text" id="destination" required />
+        </div>
+        <div class="form-group">
+            <label for="distance">Расстояние (км)</label>
+            <input type="number" id="distance" step="0.01" />
+        </div>
+        <div class="form-group">
+            <label for="startDate">Дата начала</label>
+            <input type="datetime-local" id="startDate" />
+        </div>
+        <div class="form-group">
+            <label for="endDate">Дата окончания</label>
+            <input type="datetime-local" id="endDate" />
+        </div>
+        <div class="form-group">
+            <label for="driverSelect">Водитель</label>
+            <select id="driverSelect">
+                <option value="">— Не выбран —</option>
+                <!-- заполнится JS -->
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="vehicleSelect">Транспорт</label>
+            <select id="vehicleSelect">
+                <option value="">— Не выбран —</option>
+                <!-- заполнится JS -->
+            </select>
+        </div>
+        <button type="submit" class="btn">Создать маршрут</button>
+    </form>
+</div>
+
+<div id="assign-driver" class="tab-content">
+    <h2>Назначить водителя на рейс</h2>
+
+    <div class="form-group">
+        <label for="assignRouteSelect">Выберите рейс</label>
+        <select id="assignRouteSelect" required>
+            <option value="">— Загрузка рейсов —</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="assignDriverSelect">Выберите водителя</label>
+        <select id="assignDriverSelect" required>
+            <option value="">— Загрузка водителей —</option>
+        </select>
+    </div>
+
+    <button class="btn" id="assignBtn">Назначить водителя</button>
+
+    <div id="assignmentResult" style="margin-top: 16px; display: none;"></div>
+</div>
+
+<div id="orders" class="tab-content">
+    <h2>Активные заказы</h2>
+    <table id="ordersTable">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Клиент</th>
+            <th>Описание</th>
+            <th>Статус</th>
+            <th>Стоимость</th>
+            <th>Дата</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr><td colspan="5">Загрузка...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="drivers" class="tab-content">
+    <h2>Водители</h2>
+    <button class="btn" id="refreshDriversBtn" style="margin-bottom: 16px;">🔄 Обновить</button>
+    <table id="driversTable">
+        <thead>
+        <tr>
+            <th>ФИО</th>
+            <th>Лицензия</th>
+            <th>Телефон</th>
+            <th>Статус</th>
+            <th>Дата регистрации</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr><td colspan="6">Загрузка...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="history" class="tab-content">
+    <h2>История рейсов</h2>
+    <button class="btn" id="refreshHistoryBtn" style="margin-bottom: 16px;">🔄 Обновить</button>
+    <table id="historyTable">
+        <thead>
+        <tr>
+            <th>Рейс ID</th>
+            <th>Заказ</th>
+            <th>Маршрут</th>
+            <th>Водитель</th>
+            <th>Транспорт</th>
+            <th>Период</th>
+            <th>Расстояние</th>
+            <th>Стоимость</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr><td colspan="8">Загрузка...</td></tr>
+        </tbody>
+    </table>
+</div>
+<div id="routes" class="tab-content">
+    <h2>Все маршруты</h2>
+    <button class="btn" id="refreshRoutesBtn" style="margin-bottom: 16px;">🔄 Обновить</button>
+    <table id="routesTable">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Заказ</th>
+            <th>Маршрут</th>
+            <th>Расстояние</th>
+            <th>Водитель</th>
+            <th>Транспорт</th>
+            <th>Период</th>
+            <th>Статус</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr><td colspan="8">Загрузка...</td></tr>
+        </tbody>
+    </table>
+</div>
+<!-- Модальное окно редактирования маршрута -->
+<div id="editRouteModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
+    <div style="background:white; margin:50px auto; padding:24px; width:90%; max-width:600px; border-radius:12px;">
+        <h3>Редактировать маршрут #<span id="editRouteId"></span></h3>
+        <form id="editRouteForm">
+            <div class="form-group">
+                <label>Заказ</label>
+                <div id="editOrderDisplay"></div>
+            </div>
+            <div class="form-group">
+                <label for="editDeparture">Пункт отправления</label>
+                <input type="text" id="editDeparture" required />
+            </div>
+            <div class="form-group">
+                <label for="editDestination">Пункт назначения</label>
+                <input type="text" id="editDestination" required />
+            </div>
+            <div class="form-group">
+                <label for="editDistance">Расстояние (км)</label>
+                <input type="number" id="editDistance" step="0.01" />
+            </div>
+            <div class="form-group">
+                <label for="editStartDate">Дата начала</label>
+                <input type="datetime-local" id="editStartDate" />
+            </div>
+            <div class="form-group">
+                <label for="editEndDate">Дата окончания</label>
+                <input type="datetime-local" id="editEndDate" />
+            </div>
+            <div class="form-group">
+                <label for="editDriverSelect">Водитель</label>
+                <select id="editDriverSelect">
+                    <option value="">— Не выбран —</option>
+                    <!-- заполнится -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="editVehicleSelect">Транспорт</label>
+                <select id="editVehicleSelect">
+                    <option value="">— Не выбран —</option>
+                    <!-- заполнится -->
+                </select>
+            </div>
+            <div style="display:flex; gap:12px; margin-top:20px;">
+                <button type="submit" class="btn">Сохранить</button>
+                <button type="button" id="cancelEditBtn" class="btn" style="background:#ccc;">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    // Устанавливаем размер главного окна логиста
+    window.electronAPI.setWindowSize(1000, 720);
+    //window.electronAPI.openDevTools();
+    // Переключение вкладок
+    document.querySelectorAll('.tab-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const tabId = button.dataset.tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            button.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        });
+    });
+
+    // Загрузка данных пользователя (будет приходить из Electron)
+    window.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const user = await window.electronAPI.getCurrentUser();
+            if (user && user.role === 'logistician') {
+                document.getElementById('userInfo').textContent =
+                    `${user.firstName} ${user.lastName} (логист)`;
+            } else {
+                alert('Доступ запрещён');
+                window.location.href = '../login.html';
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Ошибка загрузки пользователя');
+        }
+        async function loadActiveOrders() {
+            try {
+                const response = await window.electronAPI.getActiveOrders();
+                const tbody = document.querySelector('#ordersTable tbody');
+                if (response.success) {
+                    const orders = response.orders;
+                    if (orders.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5">Нет активных заказов</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = orders.map(order => `
+          <tr>
+            <td>${order.orderId}</td>
+            <td>${order.lastName} ${order.firstName}</td>
+            <td>${order.description || '—'}</td>
+            <td>${order.status}</td>
+            <td>${order.price !== null ? Number(order.price).toFixed(2) + ' ₽' : '—'}</td>
+            <td>${new Date(order.createdAt).toLocaleString('ru-RU')}</td>
+          </tr>
+        `).join('');
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="5">Ошибка: ${response.message}</td></tr>`;
+                }
+            } catch (err) {
+                console.error(err);
+                document.querySelector('#ordersTable tbody').innerHTML =
+                    '<tr><td colspan="5">Ошибка загрузки</td></tr>';
+            }
+        }
+        // Загружаем заказы при открытии вкладки "Активные заказы"
+        document.querySelector('[data-tab="orders"]').addEventListener('click', loadActiveOrders);
+
+        // Также загружаем при первом открытии, если вкладка активна
+        window.addEventListener('DOMContentLoaded', () => {
+            // ... (проверка пользователя)
+
+            // Проверим: если сейчас открыта вкладка orders — загрузим
+            if (document.getElementById('orders').classList.contains('active')) {
+                loadActiveOrders();
+            }
+        });
+    });
+
+    //----------crud routes
+    // Загрузка заказов, водителей, транспорта
+    async function loadRouteDependencies() {
+        try {
+            // Заказы (активные)
+            const ordersRes = await window.electronAPI.getActiveOrders();
+            const orderSelect = document.getElementById('orderSelect');
+            orderSelect.innerHTML = '<option value="">— Выберите заказ —</option>';
+            if (ordersRes.success) {
+                ordersRes.orders.forEach(order => {
+                    const opt = document.createElement('option');
+                    opt.value = order.orderId;
+                    opt.textContent = `#${order.orderId} — ${order.description || 'Без описания'}`;
+                    orderSelect.appendChild(opt);
+                });
+            }
+
+            // Водители
+            const driversRes = await window.electronAPI.getDrivers(); // ← нужно реализовать
+            const driverSelect = document.getElementById('driverSelect');
+            driverSelect.innerHTML = '<option value="">— Не выбран —</option>';
+            if (driversRes && driversRes.success) {
+                driversRes.drivers.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d.id;
+                    opt.textContent = `${d.lastName} ${d.firstName} (${d.phone})`;
+                    driverSelect.appendChild(opt);
+                });
+            }
+
+            // Транспорт
+            const vehiclesRes = await window.electronAPI.getVehicles(); // ← нужно реализовать
+            const vehicleSelect = document.getElementById('vehicleSelect');
+            vehicleSelect.innerHTML = '<option value="">— Не выбран —</option>';
+            if (vehiclesRes && vehiclesRes.success) {
+                vehiclesRes.vehicles.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.id;
+                    opt.textContent = `${v.brand} ${v.model} (${v.licensePlate})`;
+                    vehicleSelect.appendChild(opt);
+                });
+            }
+        } catch (err) {
+            console.error('Ошибка загрузки зависимостей маршрута:', err);
+        }
+    }
+
+    // Обработчик создания маршрута
+    document.getElementById('routeForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            orderId: parseInt(document.getElementById('orderSelect').value),
+            departurePoint: document.getElementById('departure').value,
+            destinationPoint: document.getElementById('destination').value,
+            distance: parseFloat(document.getElementById('distance').value) || null,
+            startDate: document.getElementById('startDate').value ? new Date(document.getElementById('startDate').value) : null,
+            endDate: document.getElementById('endDate').value ? new Date(document.getElementById('endDate').value) : null,
+            driverId: document.getElementById('driverSelect').value ? parseInt(document.getElementById('driverSelect').value) : null,
+            vehicleId: document.getElementById('vehicleSelect').value ? parseInt(document.getElementById('vehicleSelect').value) : null,
+        };
+
+        const res = await window.electronAPI.createRoute(data);
+        if (res.success) {
+            alert('Маршрут создан!');
+            document.getElementById('routeForm').reset();
+        } else {
+            alert('Ошибка: ' + res.message);
+        }
+    });
+    //---------------------------------------------------
+
+    // Загружаем данные при открытии вкладки
+    document.querySelector('[data-tab="create-route"]').addEventListener('click', loadRouteDependencies);
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        if (confirm('Вы действительно хотите выйти?')) {
+            try {
+                await window.electronAPI.logout();
+                window.electronAPI.openLoginWindow(); // открываем окно логина
+                window.close(); // закрываем текущее окно
+            } catch (err) {
+                console.error('Ошибка при выходе:', err);
+                alert('Не удалось выйти из системы');
+            }
+        }
+    });
+    // Загрузка всех маршрутов
+    async function loadAllRoutes() {
+        const tbody = document.querySelector('#routesTable tbody');
+        try {
+            const response = await window.electronAPI.getAllRoutes();
+            if (!response.success) {
+                tbody.innerHTML = `<tr><td colspan="8">Ошибка: ${response.message}</td></tr>`;
+                return;
+            }
+
+            const routes = response.routes;
+            if (routes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8">Нет маршрутов</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = routes.map(route => {
+                // Форматирование дат
+                const start = route.startDate ? new Date(route.startDate).toLocaleString('ru-RU') : '—';
+                const end = route.endDate ? new Date(route.endDate).toLocaleString('ru-RU') : '—';
+
+                // Статус на основе дат
+                let status = 'Не задан';
+                if (route.startDate && route.endDate) {
+                    const now = new Date();
+                    const startD = new Date(route.startDate);
+                    const endD = new Date(route.endDate);
+                    if (now < startD) status = 'Запланирован';
+                    else if (now >= startD && now <= endD) status = 'В пути';
+                    else if (now > endD) status = 'Завершён';
+                } else if (route.startDate) {
+                    const now = new Date();
+                    if (now < new Date(route.startDate)) status = 'Запланирован';
+                    else status = 'В пути';
+                }
+
+                // Водитель
+                const driver = route.driverId
+                    ? `${route.driverLastName || ''} ${route.driverFirstName || ''}`.trim() || '—'
+                    : '—';
+
+                // Транспорт
+                const vehicle = route.vehicleId
+                    ? `${route.vehicleBrand || ''} ${route.vehicleModel || ''} (${route.vehicleLicensePlate || ''})`.trim() || '—'
+                    : '—';
+
+                // Заказ
+                const orderDesc = route.orderDescription || 'Без описания';
+                const orderInfo = `#${route.orderId} — ${orderDesc}`;
+
+                return `
+                  <tr>
+                    <td>${route.routeId}</td>
+                    <td>${orderInfo}</td>
+                    <td>${route.departurePoint} → ${route.destinationPoint}</td>
+                    <td>${route.distance !== null ? route.distance + ' км' : '—'}</td>
+                    <td>${driver}</td>
+                    <td>${vehicle}</td>
+                    <td>${start} — ${end}</td>
+                    <td>${status}</td>
+                    <td>
+                      <button class="btn-edit" data-id="${route.routeId}">✏️</button>
+                      <button class="btn-delete" data-id="${route.routeId}">🗑️</button>
+                    </td>
+                  </tr>
+                `;
+            }).join('');
+        } catch (err) {
+            console.error('Ошибка загрузки маршрутов:', err);
+            tbody.innerHTML = '<tr><td colspan="8">Ошибка загрузки</td></tr>';
+        }
+    }
+
+    // Глобальная переменная для текущего маршрута
+    let currentRouteForEdit = null;
+
+    // Открыть модалку редактирования
+    async function openEditModal(routeId) {
+        const route = await window.electronAPI.getRouteById(routeId); // ← нужно реализовать
+        if (!route.success) {
+            alert('Не удалось загрузить маршрут');
+            return;
+        }
+        currentRouteForEdit = route.route;
+
+        // Заполним форму
+        document.getElementById('editRouteId').textContent = routeId;
+        document.getElementById('editOrderDisplay').textContent = `#${route.route.orderId} — ${route.route.orderDescription || '—'}`;
+        document.getElementById('editDeparture').value = route.route.departurePoint;
+        document.getElementById('editDestination').value = route.route.destinationPoint;
+        document.getElementById('editDistance').value = route.route.distance || '';
+        document.getElementById('editStartDate').value = route.route.startDate
+            ? new Date(route.route.startDate).toISOString().slice(0, 16) : '';
+        document.getElementById('editEndDate').value = route.route.endDate
+            ? new Date(route.route.endDate).toISOString().slice(0, 16) : '';
+
+        // Загрузим водителей и транспорт для селектов
+        const driversRes = await window.electronAPI.getDrivers();
+        const driverSelect = document.getElementById('editDriverSelect');
+        driverSelect.innerHTML = '<option value="">— Не выбран —</option>';
+        if (driversRes.success) {
+            driversRes.drivers.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                opt.textContent = `${d.lastName} ${d.firstName} [${d.licenseNumber}] ${d.isWorking ? '' : '(не работает)'}`;
+                opt.disabled = !d.isWorking;
+                if (d.id === route.route.driverId) opt.selected = true;
+                driverSelect.appendChild(opt);
+            });
+        }
+
+        const vehiclesRes = await window.electronAPI.getVehicles();
+        const vehicleSelect = document.getElementById('editVehicleSelect');
+        vehicleSelect.innerHTML = '<option value="">— Не выбран —</option>';
+        if (vehiclesRes.success) {
+            vehiclesRes.vehicles.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.id;
+                opt.textContent = `${v.brand} ${v.model} (${v.licensePlate}) ${v.isWorking ? '' : '(не работает)'}`;
+                opt.disabled = !v.isWorking;
+                if (v.id === route.route.vehicleId) opt.selected = true;
+                vehicleSelect.appendChild(opt);
+            });
+        }
+
+        document.getElementById('editRouteModal').style.display = 'block';
+    }
+    // Загрузка рейсов для назначения (можно фильтровать)
+    async function loadRoutesForAssignment() {
+        const select = document.getElementById('assignRouteSelect');
+        select.innerHTML = '<option value="">— Загрузка... —</option>';
+
+        try {
+            const response = await window.electronAPI.getAllRoutes();
+            if (!response.success) throw new Error(response.message);
+
+            // Фильтруем: только рейсы без водителя ИЛИ все (на выбор)
+            const routes = response.routes
+
+            select.innerHTML = '<option value="">— Выберите рейс —</option>';
+            routes.forEach(route => {
+                const opt = document.createElement('option');
+                opt.value = route.routeId;
+                const orderDesc = route.orderDescription || 'Без описания';
+                opt.textContent = `Рейс #${route.routeId} | Заказ #${route.orderId} — ${orderDesc} | ${route.departurePoint} → ${route.destinationPoint}`;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error('Ошибка загрузки рейсов:', err);
+            select.innerHTML = '<option value="">Ошибка загрузки</option>';
+        }
+    }
+
+    // Загрузка водителей (только работающих)
+    async function loadDriversForAssignment() {
+        const select = document.getElementById('assignDriverSelect');
+        select.innerHTML = '<option value="">— Загрузка... —</option>';
+
+        try {
+            const response = await window.electronAPI.getDrivers();
+            if (!response.success) throw new Error(response.message);
+
+            select.innerHTML = '<option value="">— Выберите водителя —</option>';
+            response.drivers
+                .filter(d => d.isWorking) // только работающие
+                .forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d.id;
+                    opt.textContent = `${d.lastName} ${d.firstName} (${d.licenseNumber})`;
+                    select.appendChild(opt);
+                });
+        } catch (err) {
+            console.error('Ошибка загрузки водителей:', err);
+            select.innerHTML = '<option value="">Ошибка загрузки</option>';
+        }
+    }
+    // Загрузка списка водителей
+    async function loadDriversList() {
+        const tbody = document.querySelector('#driversTable tbody');
+        try {
+            const response = await window.electronAPI.getDrivers();
+            if (!response.success) {
+                tbody.innerHTML = `<tr><td colspan="6">Ошибка: ${response.message}</td></tr>`;
+                return;
+            }
+
+            const drivers = response.drivers;
+            if (drivers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">Нет водителей</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = drivers.map(d => `
+      <tr>
+        <td>${d.lastName} ${d.firstName} ${d.patronymic || ''}</td>
+        <td>${d.licenseNumber}</td>
+        <td>${d.phone}</td>
+        <td>
+          <span style="color: ${d.isWorking ? 'green' : 'red'};">
+            ${d.isWorking ? '✅ Работает' : '❌ Не работает'}
+          </span>
+        </td>
+        <td>${new Date(d.createdAt).toLocaleDateString('ru-RU')}</td>
+        <td>
+          <button class="btn-edit-driver" data-id="${d.id}">✏️</button>
+          <button class="btn-delete-driver" data-id="${d.id}">🗑️</button>
+        </td>
+      </tr>
+    `).join('');
+        } catch (err) {
+            console.error('Ошибка загрузки водителей:', err);
+            tbody.innerHTML = '<tr><td colspan="6">Ошибка загрузки</td></tr>';
+        }
+    }
+    // Загрузка истории рейсов (завершённых)
+    async function loadHistory() {
+        const tbody = document.querySelector('#historyTable tbody');
+        try {
+            const response = await window.electronAPI.getHistoryRoutes();
+            console.log("response: ",response);
+            if (!response.success) {
+                tbody.innerHTML = `<tr><td colspan="8">Ошибка: ${response.message}</td></tr>`;
+                return;
+            }
+
+            const routes = response.routes;
+            if (routes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8">Нет завершённых рейсов</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = routes.map(route => {
+                const start = route.startDate ? new Date(route.startDate).toLocaleString('ru-RU') : '—';
+                const end = route.endDate ? new Date(route.endDate).toLocaleString('ru-RU') : '—';
+
+                const driver = route.driverId
+                    ? `${route.driverLastName || ''} ${route.driverFirstName || ''}`.trim() || '—'
+                    : '—';
+
+                const vehicle = route.vehicleId
+                    ? `${route.vehicleBrand || ''} ${route.vehicleModel || ''} (${route.vehicleLicensePlate || ''})`.trim() || '—'
+                    : '—';
+
+                const orderDesc = route.orderDescription || 'Без описания';
+                const orderInfo = `#${route.orderId} — ${orderDesc}`;
+
+                return `
+        <tr>
+          <td>${route.routeId}</td>
+          <td>${orderInfo}</td>
+          <td>${route.departurePoint} → ${route.destinationPoint}</td>
+          <td>${driver}</td>
+          <td>${vehicle}</td>
+          <td>${start} — ${end}</td>
+          <td>${route.distance !== null ? route.distance + ' км' : '—'}</td>
+          <td>${route.orderPrice !== null ? route.orderPrice.toFixed(2) + ' ₽' : '—'}</td>
+        </tr>
+      `;
+            }).join('');
+        } catch (err) {
+            console.log('Ошибка загрузки истории:', err);
+            tbody.innerHTML = '<tr><td colspan="8">Ошибка загрузки</td></tr>';
+        }
+    }
+
+    // Обновление по кнопке
+    document.getElementById('refreshDriversBtn').addEventListener('click', loadDriversList);
+
+    // Загрузка при открытии вкладки
+    document.querySelector('[data-tab="drivers"]').addEventListener('click', loadDriversList);
+    // Назначить водителя
+    document.getElementById('assignBtn').addEventListener('click', async () => {
+        const routeId = document.getElementById('assignRouteSelect').value;
+        const driverId = document.getElementById('assignDriverSelect').value;
+        const resultDiv = document.getElementById('assignmentResult');
+
+        if (!routeId || !driverId) {
+            resultDiv.textContent = 'Выберите рейс и водителя';
+            resultDiv.style.color = 'red';
+            resultDiv.style.display = 'block';
+            return;
+        }
+
+        try {
+            // Обновляем маршрут: устанавливаем driverId
+            const updateData = { driverId: parseInt(driverId) };
+            const res = await window.electronAPI.updateRoute(parseInt(routeId), updateData);
+
+            if (res.success) {
+                resultDiv.textContent = '✅ Водитель успешно назначен!';
+                resultDiv.style.color = 'green';
+
+                // Очистим форму
+                document.getElementById('assignRouteSelect').value = '';
+                document.getElementById('assignDriverSelect').value = '';
+
+                // Обновим список рейсов (чтобы исчез из списка)
+                loadRoutesForAssignment();
+            } else {
+                resultDiv.textContent = '❌ Ошибка: ' + res.message;
+                resultDiv.style.color = 'red';
+            }
+            resultDiv.style.display = 'block';
+        } catch (err) {
+            console.error('Ошибка назначения:', err);
+            resultDiv.textContent = '❌ Произошла ошибка';
+            resultDiv.style.color = 'red';
+            resultDiv.style.display = 'block';
+        }
+    });
+    // Привяжем к вкладке
+    document.querySelector('[data-tab="assign-driver"]').addEventListener('click', () => {
+        loadRoutesForAssignment();
+        loadDriversForAssignment();
+    });
+
+    // Обработчик сохранения
+    document.getElementById('editRouteForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentRouteForEdit) return;
+
+        const data = {
+            departurePoint: document.getElementById('editDeparture').value,
+            destinationPoint: document.getElementById('editDestination').value,
+            distance: parseFloat(document.getElementById('editDistance').value) || null,
+            startDate: document.getElementById('editStartDate').value
+                ? new Date(document.getElementById('editStartDate').value) : null,
+            endDate: document.getElementById('editEndDate').value
+                ? new Date(document.getElementById('editEndDate').value) : null,
+            driverId: document.getElementById('editDriverSelect').value
+                ? parseInt(document.getElementById('editDriverSelect').value) : null,
+            vehicleId: document.getElementById('editVehicleSelect').value
+                ? parseInt(document.getElementById('editVehicleSelect').value) : null,
+        };
+
+        const res = await window.electronAPI.updateRoute(currentRouteForEdit.routeId, data);
+        if (res.success) {
+            alert('Маршрут обновлён!');
+            document.getElementById('editRouteModal').style.display = 'none';
+            loadAllRoutes(); // обновим таблицу
+        } else {
+            alert('Ошибка: ' + res.message);
+        }
+    });
+
+    // Отмена редактирования
+    document.getElementById('cancelEditBtn').addEventListener('click', () => {
+        document.getElementById('editRouteModal').style.display = 'none';
+    });
+    // Делегирование событий для кнопок в таблице
+    document.getElementById('routesTable').addEventListener('click', async (e) => {
+        if (e.target.classList.contains('btn-delete')) {
+            const routeId = e.target.dataset.id;
+            if (confirm('Удалить маршрут #' + routeId + '?')) {
+                const res = await window.electronAPI.deleteRoute(routeId);
+                if (res.success) {
+                    alert('Маршрут удалён');
+                    loadAllRoutes();
+                } else {
+                    alert('Ошибка: ' + res.message);
+                }
+            }
+        }
+
+        if (e.target.classList.contains('btn-edit')) {
+            const routeId = e.target.dataset.id;
+            openEditModal(routeId);
+        }
+    });
+    // Делегирование для кнопок водителей
+    document.getElementById('driversTable').addEventListener('click', async (e) => {
+        const id = e.target.dataset.id;
+
+        if (e.target.classList.contains('btn-edit-driver')) {
+            alert('Редактирование водителя пока не реализовано');
+            // Здесь можно открыть модалку для редактирования
+        }
+
+        if (e.target.classList.contains('btn-delete-driver')) {
+            if (confirm('Удалить водителя? Это повлияет на рейсы!')) {
+                const res = await window.electronAPI.deleteDriver(id);
+                if (res.success) {
+                    alert('Водитель удалён');
+                    loadDriversList();
+                } else {
+                    alert('Ошибка: ' + res.message);
+                }
+            }
+        }
+    });
+
+    // Привяжем обновление к кнопке и вкладке
+    document.getElementById('refreshRoutesBtn').addEventListener('click', loadAllRoutes);
+    document.querySelector('[data-tab="routes"]').addEventListener('click', loadAllRoutes);
+
+    // Обновление по кнопке
+    document.getElementById('refreshHistoryBtn').addEventListener('click', loadHistory);
+
+    // Загрузка при открытии вкладки
+    document.querySelector('[data-tab="history"]').addEventListener('click', loadHistory);
+</script>
+</body>
+</html>

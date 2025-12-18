@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Панель клиента</title>
+    <style>
+        :root {
+            --green-primary: #2e7d32;
+            --green-light: #a5d6a7;
+            --green-dark: #1b5e20;
+            --bg-color: #f9f9f9;
+            --text-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .header {
+            background-color: var(--green-primary);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 22px;
+        }
+
+        .user-info {
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #eee;
+        }
+
+        .tab-btn {
+            padding: 14px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #555;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: var(--green-primary);
+            border-bottom: 3px solid var(--green-primary);
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 24px;
+            background: white;
+            min-height: 500px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab-content h2 {
+            margin-bottom: 20px;
+            color: var(--green-primary);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background-color: var(--green-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            background-color: var(--green-dark);
+        }
+
+        .btn-danger {
+            background-color: #f44336;
+        }
+
+        .btn-danger:hover {
+            background-color: #d32f2f;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: #f5f5f5;
+        }
+        .btn-logout {
+            padding: 6px 12px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-logout:hover {
+            background-color: #d32f2f;
+        }
+
+        .status-created { color: #1976d2; }
+        .status-assigned { color: #f57c00; }
+        .status-in_transit { color: #388e3c; }
+        .status-delivered { color: #388e3c; font-weight: bold; }
+        .status-cancelled { color: #d32f2f; text-decoration: line-through; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>Панель клиента</h1>
+    <div class="user-info" id="userInfo">Загрузка...</div>
+    <button id="logoutBtn" class="btn-logout">Выйти</button> <!-- ← новая кнопка -->
+</div>
+
+<div class="tabs">
+    <button class="tab-btn active" data-tab="my-orders">Просмотр заказов в БД</button>
+    <button class="tab-btn" data-tab="create-order">Создание заказа в БД</button>
+    <button class="tab-btn" data-tab="edit-order">Редактирование заказа в БД</button> <!-- ← новая -->
+    <button class="tab-btn" data-tab="order-details">Детали заказа</button>
+</div>
+
+<!-- Мои заказы -->
+<div id="my-orders" class="tab-content active">
+    <h2>Просмотр заказов в БД</h2>
+    <div style="margin-bottom: 16px;">
+        <label>Фильтр по статусу:
+            <select id="statusFilter">
+                <option value="all">Все</option>
+                <option value="created">Создан</option>
+                <option value="assigned">Назначен</option>
+                <option value="in_transit">В пути</option>
+                <option value="delivered">Доставлен</option>
+                <option value="cancelled">Отменён</option>
+            </select>
+        </label>
+        <button class="btn" id="refreshOrdersBtn">🔄 Обновить</button>
+    </div>
+    <table id="ordersTable">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Описание</th>
+            <th>Статус</th>
+            <th>Стоимость</th>
+            <th>Дата</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr><td colspan="6">Загрузка...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Создать заказ -->
+<div id="create-order" class="tab-content">
+    <h2>Создание заказа в БД</h2>
+    <form id="createOrderForm">
+        <div class="form-group">
+            <label for="orderDescription">Описание груза</label>
+            <textarea id="orderDescription" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+            <label for="orderStart">Пункт отправления</label>
+            <input type="text" id="orderStart" required />
+        </div>
+        <div class="form-group">
+            <label for="orderEnd">Пункт назначения</label>
+            <input type="text" id="orderEnd" required />
+        </div>
+        <button type="submit" class="btn">Создать заказ</button>
+    </form>
+</div>
+
+<!-- Детали заказа (изначально скрыт) -->
+<div id="order-details" class="tab-content">
+    <h2>Просмотр деталей заказа <span id="detailOrderId"></span></h2>
+    <div id="orderTracker" style="margin: 20px 0; padding: 20px; background: #f9f9f9; border-radius: 8px;">
+        <!-- Трекер будет здесь -->
+    </div>
+    <div id="orderDetailContent">
+        Вернуться к заказам
+    </div>
+    </div>
+    <button class="btn" id="backToOrdersBtn" style="margin-top: 20px;">← Назад к заказам</button>
+</div>
+<!-- Форма редактирования заказа -->
+<div id="edit-order" class="tab-content">
+    <h2>Редактирование заказа в БД<span id="editOrderId"></span></h2>
+    <form id="editOrderForm">
+        <input type="hidden" id="editOrderIdInput" />
+
+        <div class="form-group">
+            <label for="editOrderDescription">Описание груза</label>
+            <textarea id="editOrderDescription" rows="3" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="editOrderStart">Пункт отправления</label>
+            <input type="text" id="editOrderStart" required />
+        </div>
+
+        <div class="form-group">
+            <label for="editOrderEnd">Пункт назначения</label>
+            <input type="text" id="editOrderEnd" required />
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 20px;">
+            <button type="submit" class="btn">Сохранить</button>
+            <button type="button" id="cancelEditOrderBtn" class="btn" style="background: #ccc;">Отмена</button>
+        </div>
+    </form>
+</div>
+<script>
+    window.electronAPI.openDevTools();
+    // Переключение вкладок
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                // Убираем активность со всех
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                // Делаем активной нажатую
+                button.classList.add('active');
+                const tabId = button.dataset.tab;
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+    });
+    let currentClient = null;
+
+    // Загрузка пользователя
+    window.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const user = await window.electronAPI.getCurrentUser();
+            if (user && user.role === 'client') {
+                document.getElementById('userInfo').textContent =
+                    `${user.firstName} ${user.lastName} (клиент)`;
+                currentClient = user;
+                console.log("curUser:",currentClient)
+                window.electronAPI.setWindowSize(900, 650);
+                loadClientOrders();
+            } else {
+                alert('Доступ запрещён');
+                window.location.href = '../login.html';
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Ошибка загрузки пользователя');
+        }
+    });
+
+    // Загрузка заказов
+    async function loadClientOrders() {
+        const tbody = document.querySelector('#ordersTable tbody');
+        const statusFilter = document.getElementById('statusFilter').value;
+
+        try {
+            const response = await window.electronAPI.getClientOrders(currentClient.id);
+            if (!response.success) {
+                tbody.innerHTML = `<tr><td colspan="6">Ошибка: ${response.message}</td></tr>`;
+                return;
+            }
+
+            let orders = response.orders;
+            if (statusFilter !== 'all') {
+                orders = orders.filter(o => o.status === statusFilter);
+            }
+
+            tbody.innerHTML = orders.map(o => `
+  <tr data-order-id="${o.orderId}">
+    <td>${o.orderId}</td>
+    <td>${o.description || '—'}</td>
+    <td><span class="status-${o.status}">${o.status}</span></td>
+    <td>${o.price !== null ? Number(o.price).toFixed(2) + ' ₽' : '—'}</td>
+    <td>${new Date(o.createdAt).toLocaleDateString('ru-RU')}</td>
+    <td>
+  <button class="btn-details">👁️</button>
+  ${o.status === 'created'
+                ? `
+      <button class="btn-edit">✏️</button>
+      <button class="btn-cancel">❌</button>
+    `
+                : ''}
+</td>
+  </tr>
+`).join('');
+        } catch (err) {
+
+            console.log(err)
+            tbody.innerHTML = '<tr><td colspan="6">Ошибка загрузки</td></tr>';
+        }
+    }
+
+    // Обработчики
+    document.getElementById('refreshOrdersBtn').addEventListener('click', loadClientOrders);
+    document.getElementById('statusFilter').addEventListener('change', loadClientOrders);
+
+    // Создание заказа
+    document.getElementById('createOrderForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            clientId: currentClient.id,
+            description: document.getElementById('orderDescription').value,
+            startPoint: document.getElementById('orderStart').value,
+            endPoint: document.getElementById('orderEnd').value
+        };
+        console.log("data: ",data);
+        const res = await window.electronAPI.createOrder(data);
+        if (res.success) {
+            alert('Заказ создан!');
+            document.getElementById('createOrderForm').reset();
+            // Переключиться на вкладку заказов
+            document.querySelector('[data-tab="my-orders"]').click();
+        } else {
+            alert('Ошибка: ' + res.message);
+        }
+    });
+
+    // Делегирование для кнопок
+    document.getElementById('ordersTable').addEventListener('click', async (e) => {
+        const isDetailsBtn = e.target.classList.contains('btn-details');
+        const isEditBtn = e.target.classList.contains('btn-edit');
+        const isCancelBtn = e.target.classList.contains('btn-cancel');
+
+        if (!isDetailsBtn && !isEditBtn && !isCancelBtn) return;
+
+        const row = e.target.closest('tr');
+        if (!row) return;
+
+        const orderIdCell = row.querySelector('td:first-child');
+        if (!orderIdCell) return;
+
+        const orderId = orderIdCell.textContent.trim();
+        if (!/^\d+$/.test(orderId)) return;
+
+        if (isDetailsBtn) {
+            showOrderDetails(orderId);
+        }
+
+        if (isEditBtn) {
+            openEditOrder(orderId);
+        }
+
+        if (isCancelBtn) {
+            if (confirm('Отменить заказ?')) {
+                const res = await window.electronAPI.cancelOrder(orderId);
+                if (res.success) {
+                    alert('Заказ отменён');
+                    loadClientOrders();
+                } else {
+                    alert('Ошибка: ' + res.message);
+                }
+            }
+        }
+    });
+    //row.addEventListener('dblclick', () => showOrderDetails(row.dataset.orderId));
+
+    function renderOrderTracker(order, route, driver, vehicle) {
+        const statusConfig = [
+            { key: 'created', label: 'Заказ создан' },
+            { key: 'assigned', label: 'Назначен водитель' },
+            { key: 'in_transit', label: 'В пути' },
+            { key: 'delivered', label: 'Доставлен' }
+        ];
+
+        const currentIndex = statusConfig.findIndex(s => s.key === order.status);
+        if (currentIndex === -1) return; // неизвестный статус
+
+        // Генерация трекера
+        const stepsHtml = statusConfig.map((step, i) => {
+            const isCompleted = i < currentIndex;
+            const isActive = i === currentIndex;
+            const color = isActive ? '#2E7D32' : isCompleted ? '#4CAF50' : '#ccc';
+            const textColor = i <= currentIndex ? '#333' : '#999';
+
+            return `
+      <div style="text-align: center; flex: 1; min-width: 120px;">
+        <div style="
+          width: 36px; height: 36px; border-radius: 50%;
+          margin: 0 auto 10px;
+          background: ${color};
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+          font-size: 16px;
+        ">${i + 1}</div>
+        <div style="font-size: 14px; color: ${textColor};">${step.label}</div>
+      </div>
+    `;
+        }).join('');
+
+        let trackerHtml = `
+    <div style="display: flex; justify-content: space-between; position: relative; margin-bottom: 20px;">
+      ${stepsHtml}
+    </div>
+  `;
+
+        // Дополнительная информация для "в пути"
+        if (order.status === 'in_transit' && driver) {
+            trackerHtml += `
+      <div style="background: #e8f5e9; padding: 16px; border-radius: 8px; margin-top: 16px; border-left: 4px solid #4CAF50;">
+        <h4 style="margin-top: 0; color: #2E7D32;">Ваш водитель на линии:</h4>
+        <p><strong>${driver.lastName} ${driver.firstName}</strong></p>
+        <p>Телефон: <a href="tel:${driver.phone}" style="color: #2E7D32;">${driver.phone}</a></p>
+        ${vehicle ? `<p>Транспорт: <strong>${vehicle.brand} ${vehicle.model}</strong> (${vehicle.licensePlate})</p>` : ''}
+        ${route?.endDate ? `<p>Ожидаемая доставка: <strong>${new Date(route.endDate).toLocaleString('ru-RU')}</strong></p>` : ''}
+      </div>
+    `;
+        }
+
+        document.getElementById('orderTracker').innerHTML = trackerHtml;
+    }
+    // Показ деталей
+    async function showOrderDetails(orderId) {
+        const res = await window.electronAPI.getOrderDetails(orderId);
+        if (!res.success) {
+            alert('Ошибка загрузки деталей');
+            return;
+        }
+
+        const { order, route } = res;
+
+        // Загружаем водителя и транспорт, если они есть в маршруте
+        let driver = null;
+        let vehicle = null;
+
+        if (route?.driverId) {
+            const driverRes = await window.electronAPI.getDriverById(route.driverId);
+            if (driverRes.success) driver = driverRes.driver;
+        }
+
+        if (route?.vehicleId) {
+            const vehicleRes = await window.electronAPI.getVehicleById(route.vehicleId);
+            if (vehicleRes.success) vehicle = vehicleRes.vehicle;
+        }
+
+        // Обновляем заголовок
+        document.getElementById('detailOrderId').textContent = `#${orderId}`;
+
+        // Основная информация
+        let routeInfo = 'Маршрут не задан';
+        if (route) {
+            routeInfo = `${route.departurePoint} → ${route.destinationPoint}`;
+        }
+
+        document.getElementById('orderDetailContent').innerHTML = `
+    <p><strong>Описание:</strong> ${order.description || '—'}</p>
+    <p><strong>Стоимость:</strong> ${order.price !== null ? Number(order.price).toFixed(2) + ' ₽' : '—'}</p>
+    <p><strong>Маршрут:</strong> ${routeInfo}</p>
+    <p><strong>Дата создания:</strong> ${new Date(order.createdAt).toLocaleString('ru-RU')}</p>
+  `;
+
+        // 🔥 ОТРИСОВКА ТРЕКЕРА
+        renderOrderTracker(order, route, driver, vehicle);
+
+        // Переключаемся на вкладку
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelector('[data-tab="order-details"]').classList.add('active');
+        document.getElementById('order-details').classList.add('active');
+    };
+
+    // Открыть форму редактирования
+    async function openEditOrder(orderId) {
+        const res = await window.electronAPI.getOrderForEdit(orderId);
+        if (!res.success) {
+            alert('Ошибка: ' + res.message);
+            return;
+        }
+
+        const { order, route } = res;
+
+        // Заполняем форму
+        document.getElementById('editOrderId').textContent = `#${orderId}`;
+        document.getElementById('editOrderIdInput').value = orderId;
+        document.getElementById('editOrderDescription').value = order.description || '';
+        document.getElementById('editOrderStart').value = route?.departurePoint || '';
+        document.getElementById('editOrderEnd').value = route?.destinationPoint || '';
+
+        // Переключаемся на вкладку
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelector('[data-tab="edit-order"]').classList.add('active');
+        document.getElementById('edit-order').classList.add('active');
+    }
+
+    // Обработчик сохранения
+    document.getElementById('editOrderForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const orderId = document.getElementById('editOrderIdInput').value;
+        const data = {
+            orderId: parseInt(orderId),
+            orderData: {
+                description: document.getElementById('editOrderDescription').value
+            },
+            routeData: {
+                departurePoint: document.getElementById('editOrderStart').value,
+                destinationPoint: document.getElementById('editOrderEnd').value
+            }
+        };
+
+        // Попробуем получить routeId из текущего маршрута (опционально)
+        // Но проще — пусть бэкенд сам решит: обновить или создать
+
+        const res = await window.electronAPI.updateOrder(data);
+        if (res.success) {
+            alert('Изменения сохранены!');
+            // Вернёмся к списку заказов
+            document.querySelector('[data-tab="my-orders"]').click();
+            loadClientOrders();
+        } else {
+            alert('Ошибка: ' + res.message);
+        }
+    });
+
+    // Отмена редактирования
+    document.getElementById('cancelEditOrderBtn').addEventListener('click', () => {
+        document.querySelector('[data-tab="my-orders"]').click();
+    });
+    // Обработчик кнопки "Выйти"
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        if (confirm('Вы действительно хотите выйти?')) {
+            try {
+                await window.electronAPI.logout();
+                window.electronAPI.openLoginWindow();
+                window.close(); // закрываем текущее окно клиента
+            } catch (err) {
+                console.error('Ошибка при выходе:', err);
+                alert('Не удалось выйти из системы');
+            }
+        }
+    });
+</script>
+</body>
+</html>
