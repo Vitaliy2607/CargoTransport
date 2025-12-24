@@ -50,7 +50,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     createFuel: (data:any) => ipcRenderer.invoke('create-fuel', data),
     updateFuel: (fuelId:number, data:any) => ipcRenderer.invoke('update-fuel', { fuelId, data }),
     deleteFuel: (fuelId:number) => ipcRenderer.invoke('delete-fuel', fuelId),
-    getDriverVehicles: (driverId: number) => ipcRenderer.invoke('get-driver-vehicles', driverId),
+    getAllVehicles: () => ipcRenderer.invoke('get-all-vehicles'),
     createVehicle: (data:any) => ipcRenderer.invoke('create-vehicle', data),
     updateVehicle: (vehicleId:number, data:any) => ipcRenderer.invoke('update-vehicle', { vehicleId, data }),
     deleteVehicle: (vehicleId:number) => ipcRenderer.invoke('delete-vehicle', vehicleId),

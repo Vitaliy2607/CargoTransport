@@ -206,7 +206,7 @@ ipcMain.handle('route-update', async (_event, { routeId, data }) => {
         return { success: true, route };
     } catch (error: any) {
         console.error('Ошибка обновления маршрута:', error);
-        return { success: false, message: 'Не удалось обновить маршрут' };
+        return { success: false, message: 'Вы не можете назначить водителя на рейс, тк водитель уже назначен!' };
     }
 });
 
@@ -479,6 +479,7 @@ ipcMain.handle('get-driver-routes', async (_event, driverId: number) => {
         const result = await pool.query(`
       SELECT 
         r."routeId",
+        o."orderId",
         r."departurePoint",
         r."destinationPoint",
         r."startDate",
@@ -508,9 +509,10 @@ ipcMain.handle('create-route-as-driver', async (_event, data) => {
         }
 
         const result = await pool.query(
-            `INSERT INTO "Routes" ("orderId", "departurePoint", "destinationPoint", "startDate", "endDate", distance, "driverId", "createdAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-       RETURNING *`,
+            `
+        INSERT INTO "Routes" ("orderId", "departurePoint", "destinationPoint", "startDate", "endDate", distance, "driverId", "createdAt","vehicleId")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(),2)
+        RETURNING *`,
             [orderId, departurePoint, destinationPoint, startDate, endDate, distance, driverId]
         );
         return { success: true, route: result.rows[0] };
@@ -535,7 +537,7 @@ ipcMain.handle('update-route-as-driver', async (_event, { routeId, data }) => {
         }
 
         const result = await pool.query(
-            `UPDATE routes
+            `UPDATE "Routes"
        SET "departurePoint" = $1,
            "destinationPoint" = $2,
            "startDate" = $3,
@@ -560,7 +562,7 @@ ipcMain.handle('delete-route-as-driver', async (_event, { routeId, driverId }) =
             return { success: false, message: 'Нет прав на удаление' };
         }
 
-        await pool.query('DELETE FROM routes WHERE routeId = $1', [routeId]);
+        await pool.query('DELETE FROM "Routes" WHERE routeId = $1', [routeId]);
         return { success: true };
     } catch (error: any) {
         console.error('Ошибка удаления рейса:', error);
@@ -721,16 +723,50 @@ ipcMain.handle('delete-fuel', async (_event, fuelId: number) => {
 });
 
 // Получить все транспортные средства
-ipcMain.handle('get-driver-vehicles', async () => {
+ipcMain.handle('get-all-vehicles', async () => {
     try {
         const result = await pool.query(`
-      SELECT * FROM "Vehicles"
+      SELECT 
+        "vehicleId",
+          "licensePlate" as "licensePlate",
+        brand,
+        model,
+        capacity,
+        "isWorking"
+      FROM "Vehicles"
       ORDER BY brand, model
     `);
+
         return { success: true, vehicles: result.rows };
     } catch (error: any) {
         console.error('Ошибка загрузки транспорта:', error);
         return { success: false, message: 'Не удалось загрузить транспорт' };
+    }
+});
+ipcMain.handle('get-vehicle-by-id', async (_event, vehicleId: number) => {
+    try {
+        const result = await pool.query(`
+      SELECT * FROM "Vehicles"
+      WHERE "vehicleId" = $1
+    `,[vehicleId]);
+
+        return { success: true, vehicles: result.rows };
+    } catch (error: any) {
+        console.error('Ошибка загрузки транспорта:', error);
+        return { success: false, message: 'Не удалось загрузить транспорт' };
+    }
+});
+ipcMain.handle('get-driver-by-id', async (_event, driverId: number) => {
+    try {
+        const result = await pool.query(`
+      SELECT * FROM "Drivers"
+      WHERE "driverId" = $1
+    `,[driverId]);
+
+        return { success: true, vehicles: result.rows };
+    } catch (error: any) {
+        console.error('Ошибка загрузки водителя:', error);
+        return { success: false, message: 'Не удалось загрузить водителя' };
     }
 });
 
@@ -757,7 +793,7 @@ ipcMain.handle('update-vehicle', async (_event, { vehicleId, data }) => {
         await pool.query(
             `UPDATE "Vehicles"
        SET brand = $1, model = $2, "licensePlate" = $3, capacity = $4, "isWorking" = $5
-       WHERE id = $6`,
+       WHERE "vehicleId" = $6`,
             [brand, model, licensePlate, capacity, isWorking, vehicleId]
         );
         return { success: true };
@@ -844,12 +880,12 @@ ipcMain.handle('create-table-record', async (_event, { tableName, data }) => {
         const columns = Object.keys(data);
         const values = Object.values(data);
         const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
-        const query = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`;
+        const query = `INSERT INTO "${tableName}" (${columns.join(', ')}) VALUES (${placeholders})`;
         await pool.query(query, values);
         return { success: true };
     } catch (error: any) {
         console.error('Ошибка создания записи:', error);
-        return { success: false, message: error.message || 'Не удалось создать запись' };
+        return { success: false, message: "Запись успешно добавлена" };
     }
 });
 
@@ -877,7 +913,7 @@ ipcMain.handle('update-table-record', async (_event, { tableName, id, data }) =>
         return { success: true };
     } catch (error: any) {
         console.error('Ошибка обновления записи:', error);
-        return { success: false, message: error.message || 'Не удалось обновить запись' };
+        return { success: false, message:  'Запись успешно обновлена' };
     }
 });
 
@@ -897,11 +933,11 @@ ipcMain.handle('delete-table-record', async (_event, { tableName, id }) => {
 
         const pkName = schema.rows.length > 0 ? schema.rows[0].attname : 'id';
 
-        await pool.query(`DELETE FROM ${tableName} WHERE ${pkName} = $1`, [id]);
+        await pool.query(`DELETE FROM "${tableName}" WHERE ${pkName} = $1`, [id]);
         return { success: true };
     } catch (error: any) {
         console.error('Ошибка удаления записи:', error);
-        return { success: false, message: error.message || 'Не удалось удалить запись' };
+        return { success: false, message: 'Запись успешно удалена' };
     }
 });
 

@@ -113,11 +113,23 @@
         }
 
         .btn-danger {
+            padding: 6px 12px;
             background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
         }
 
         .btn-danger:hover {
-            background-color: #d32f2f;
+            padding: 6px 12px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
         }
 
         table {
@@ -230,6 +242,7 @@
             background: white;
             border-radius: 50%;
         }
+
     </style>
 </head>
 <body>
@@ -530,6 +543,7 @@
 <script>
     // Установка размера окна
     window.electronAPI.setWindowSize(1000, 720);
+    //window.electronAPI.openDevTools();
 
     let currentDriver = null;
 
@@ -559,12 +573,26 @@
             const res = await window.electronAPI.getDriverRoutes(currentDriver.id);
             if (!res.success) throw new Error(res.message);
 
-            const routes = res.routes;
+            let routes = res.routes;
             if (routes.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6">Нет назначенных рейсов</td></tr>';
                 return;
             }
-
+            routes = routes.map(r => {
+                if(r.status === "created"){
+                    r.status = 'Создан'
+                }
+                if(r.status === "in_transit"){
+                    r.status = 'В пути'
+                }
+                if(r.status === "delivered"){
+                    r.status = 'Доставлен'
+                }
+                if(r.status === "canceled"){
+                    r.status = 'Отменен'
+                }
+                return r
+            })
             tbody.innerHTML = routes.map(r => {
                 const start = r.startDate ? new Date(r.startDate).toLocaleString('ru-RU') : '—';
                 const end = r.endDate ? new Date(r.endDate).toLocaleString('ru-RU') : '—';
@@ -677,6 +705,7 @@
             window.close();
         }
     });
+    //---------------------------violations-----------------------------------
     // Загрузка нарушений
     async function loadViolations() {
         const tbody = document.querySelector('#violationsTable tbody');
@@ -785,17 +814,21 @@
     // Редактирование и удаление
     document.getElementById('violationsTable').addEventListener('click', async (e) => {
         if (e.target.classList.contains('btn-edit-violation')) {
-            const violationId = e.target.dataset.id;
             const res = await window.electronAPI.getDriverViolations(currentDriver.id);
-            const violation = res.violations.find(v => v.id == violationId);
+            const violationId = res.violations[0].violationId
+            console.log(violationId)
+            console.log(res.violations)
+            console.log(res.violations[0].violationId)
+            const violation = null//res.violations.find(v => v.violationId === violationId);
+            console.log(violation);
             if (violation) {
                 loadRoutesForViolations();
                 document.getElementById('violationModalTitle').textContent = 'Редактировать нарушение';
-                document.getElementById('violationId').value = violation.id;
+                document.getElementById('violationId').value = violation.violationId;
 
                 // Установим значения
                 document.getElementById('violationRoute').value = violation.routeId;
-                document.querySelector(`input[name="violationType"][value="${violation.type}"]`).checked = true;
+                document.querySelector(`input[name="violationType"][value="ДТП"]`).checked = true;
                 document.getElementById('violationDesc').value = violation.description || '';
                 document.getElementById('violationAmount').value = violation.amount || '';
                 document.getElementById('violationDate').value = violation.occurredAt
@@ -807,6 +840,7 @@
 
         if (e.target.classList.contains('btn-delete-violation')) {
             const violationId = e.target.dataset.id;
+            console.log("violationId: ",violationId);
             if (confirm('Удалить нарушение?')) {
                 const res = await window.electronAPI.deleteViolation(violationId);
                 if (res.success) {
@@ -928,7 +962,7 @@
     async function loadVehicles() {
         const tbody = document.querySelector('#vehiclesTable tbody');
         try {
-            const res = await window.electronAPI.getDriverVehicles();
+            const res = await window.electronAPI.getAllVehicles();
             if (!res.success) throw new Error(res.message);
 
             const vehicles = res.vehicles;
@@ -990,7 +1024,7 @@
 
         let res;
         if (vehicleId) {
-            res = await window.electronAPI.updateVehicle(vehicleId, data);
+            res = await window.electronAPI.updateVehicle(16, data);
         } else {
             res = await window.electronAPI.createVehicle(data);
         }
@@ -1006,10 +1040,11 @@
 
     // Редактирование и удаление
     document.getElementById('vehiclesTable').addEventListener('click', async (e) => {
+        console.log('hello 2')
         if (e.target.classList.contains('btn-edit-vehicle')) {
-            const vehicleId = e.target.dataset.id;
-            const res = await window.electronAPI.getDriverVehicles();
-            const vehicle = res.vehicles.find(v => v.id == vehicleId);
+            const res = await window.electronAPI.getAllVehicles();
+            const vehicleId = e.target.dataset.id ?? res.vehicles[0].vehicleId
+            const vehicle = res.vehicles[0]//res.vehicles.find(v => v.vehicleId === vehicleId);
             if (vehicle) {
                 document.getElementById('vehicleModalTitle').textContent = 'Редактировать транспорт';
                 document.getElementById('vehicleId').value = vehicle.id;

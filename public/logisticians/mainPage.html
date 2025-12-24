@@ -452,12 +452,26 @@
                 const response = await window.electronAPI.getActiveOrders();
                 const tbody = document.querySelector('#ordersTable tbody');
                 if (response.success) {
-                    const orders = response.orders;
+                    let orders = response.orders;
                     if (orders.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="5">Нет активных заказов</td></tr>';
                         return;
                     }
-
+                    orders = orders.map(o => {
+                        if(o.status === "created"){
+                            o.status = 'Создан'
+                        }
+                        if(o.status === "in_transit"){
+                            o.status = 'В пути'
+                        }
+                        if(o.status === "delivered"){
+                            o.status = 'Доставлен'
+                        }
+                        if(o.status === "canceled"){
+                            o.status = 'Отменен'
+                        }
+                        return o
+                    })
                     tbody.innerHTML = orders.map(order => `
           <tr>
             <td>${order.orderId}</td>
@@ -515,7 +529,8 @@
             if (driversRes && driversRes.success) {
                 driversRes.drivers.forEach(d => {
                     const opt = document.createElement('option');
-                    opt.value = d.id;
+                    opt.value = d.driverId;
+                    console.log("d.driverId: ", d.driverId)
                     opt.textContent = `${d.lastName} ${d.firstName} (${d.phone})`;
                     driverSelect.appendChild(opt);
                 });
@@ -528,7 +543,8 @@
             if (vehiclesRes && vehiclesRes.success) {
                 vehiclesRes.vehicles.forEach(v => {
                     const opt = document.createElement('option');
-                    opt.value = v.id;
+                    opt.value = v.vehicleId;
+                    console.log("v.id: ",v.vehicleId);
                     opt.textContent = `${v.brand} ${v.model} (${v.licensePlate})`;
                     vehicleSelect.appendChild(opt);
                 });

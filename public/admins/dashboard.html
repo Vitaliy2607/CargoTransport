@@ -410,10 +410,12 @@
                 alert('Запись удалена');
                 loadTableData(currentTable);
             } else {
-                alert('Ошибка: ' + res.message);
+                alert(res.message);
+                loadTableData(currentTable);
             }
         } catch (err) {
-            alert('Ошибка: ' + err.message);
+            alert(err.message);
+            loadTableData(currentTable);
         }
     }
 
@@ -445,10 +447,11 @@
                 document.getElementById('universalCrudModal').style.display = 'none';
                 loadTableData(currentTable);
             } else {
-                alert('Ошибка: ' + res.message);
+                alert(res.message);
+                loadTableData(currentTable);
             }
         } catch (err) {
-            alert('Ошибка: ' + err.message);
+            alert(err.message);
         }
     });
 

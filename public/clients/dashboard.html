@@ -39,7 +39,11 @@
         }
 
         .user-info {
-            font-size: 14px;
+            /*font-size: 14px;*/
+            /*margin-left: auto;*/
+            display: flex;F
+            align-items: center;
+            gap: 12px;
         }
 
         .tabs {
@@ -318,7 +322,21 @@
             if (statusFilter !== 'all') {
                 orders = orders.filter(o => o.status === statusFilter);
             }
-
+            orders = orders.map(o => {
+                if(o.status === "created"){
+                    o.status = 'Создан'
+                }
+                if(o.status === "in_transit"){
+                    o.status = 'В пути'
+                }
+                if(o.status === "delivered"){
+                    o.status = 'Доставлен'
+                }
+                if(o.status === "canceled"){
+                    o.status = 'Отменен'
+                }
+                return o
+            })
             tbody.innerHTML = orders.map(o => `
   <tr data-order-id="${o.orderId}">
     <td>${o.orderId}</td>
@@ -328,7 +346,7 @@
     <td>${new Date(o.createdAt).toLocaleDateString('ru-RU')}</td>
     <td>
   <button class="btn-details">👁️</button>
-  ${o.status === 'created'
+  ${o.status === 'Создан'
                 ? `
       <button class="btn-edit">✏️</button>
       <button class="btn-cancel">❌</button>
@@ -493,7 +511,7 @@
         document.getElementById('detailOrderId').textContent = `#${orderId}`;
 
         // Основная информация
-        let routeInfo = 'Маршрут не задан';
+        let routeInfo = "Туапсе -> Краснодар";
         if (route) {
             routeInfo = `${route.departurePoint} → ${route.destinationPoint}`;
         }

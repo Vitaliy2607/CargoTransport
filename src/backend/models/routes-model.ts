@@ -67,8 +67,8 @@ class RouteModel {
     static async create(data: Omit<Route, 'routeId' | 'createdAt'>) {
         const { departurePoint, destinationPoint, startDate, endDate, distance, orderId, vehicleId, driverId } = data;
         const result = await pool.query(
-            `INSERT INTO "Routes" ("departurePoint", "destinationPoint", "startDate", "endDate", distance, "orderId", "vehicleId","driverId")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `INSERT INTO "Routes" ("departurePoint", "destinationPoint", "startDate", "endDate", distance, "orderId", "vehicleId","driverId", "createdAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
        RETURNING *`,
             [departurePoint, destinationPoint, startDate, endDate, distance, orderId, vehicleId || null, driverId || null]
         );
